@@ -1,0 +1,16 @@
+kdna-web-client
+Copyright 2026 KDNA Authors
+
+This product includes software developed at
+https://github.com/aikdna/kdna-web-client
+
+kdna-web-client provides browser-safe KDNA utilities: file selection,
+metadata inspection, file upload, and load-plan state management.
+
+This package never performs decryption or license verification.
+All sensitive operations must be handled by a server running
+@aikdna/kdna-web-server or an equivalent server-side integration.
+
+See LICENSE for the full Apache 2.0 license text.
+See README.md for the browser integration guide.
+See docs/security-model.md for what this package does and does not do.

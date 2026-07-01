@@ -1,0 +1,39 @@
+{
+  "name": "@aikdna/kdna-web-client",
+  "version": "0.1.0",
+  "description": "Browser-safe KDNA utilities — file selection, metadata inspection, upload, and load-plan state management. Never performs decryption.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src/",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "build": "node scripts/build.js",
+    "size": "node scripts/size.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {},
+  "dependencies": {},
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aikdna/kdna-web-client.git"
+  },
+  "homepage": "https://github.com/aikdna/kdna-web-client",
+  "keywords": [
+    "kdna",
+    "kdna-web-client",
+    "browser",
+    "file-api",
+    "load-plan",
+    "judgment-asset"
+  ]
+}
