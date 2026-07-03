@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  KDNAFileSizeError,
+  KDNAFormatError,
   KDNALoadError,
   KDNALoadPlanManager,
   KDNAUploadError,
@@ -66,9 +68,9 @@ function makeStoredZip(entries) {
   return concat([local, central, eocd]);
 }
 
-function makeAssetFile() {
+function makeAssetFile(mimetype = 'application/vnd.kdna.asset') {
   const zip = makeStoredZip({
-    mimetype: 'application/vnd.kdna.asset',
+    mimetype,
     'kdna.json': JSON.stringify({
       asset_id: 'kdna:test:browser',
       version: '0.1.0',
@@ -88,6 +90,28 @@ test('readKDNAMetadata reads public manifest fields without a server', async () 
   assert.equal(meta.title, 'Browser Asset');
   assert.deepEqual(meta.profiles, ['index', 'compact']);
   assert.equal(meta.encrypted, false);
+});
+
+test('readKDNAMetadata accepts current v1 KDNA mimetype', async () => {
+  const meta = await readKDNAMetadata(makeAssetFile('application/vnd.aikdna.kdna+zip'));
+  assert.equal(meta.domain, 'kdna:test:browser');
+});
+
+test('readKDNAMetadata rejects unsupported mimetype entries', async () => {
+  await assert.rejects(
+    readKDNAMetadata(makeAssetFile('application/zip')),
+    (error) => error instanceof KDNAFormatError && error.code === 'KDNA_MIMETYPE_INVALID',
+  );
+});
+
+test('readKDNAMetadata enforces optional maxSizeBytes', async () => {
+  const file = makeAssetFile();
+  await assert.rejects(
+    readKDNAMetadata(file, { maxSizeBytes: file.size - 1 }),
+    (error) => error instanceof KDNAFileSizeError
+      && error.code === 'KDNA_FILE_TOO_LARGE'
+      && error.actualSizeBytes === file.size,
+  );
 });
 
 test('uploadKDNA posts multipart form data and returns fileId', async () => {

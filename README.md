@@ -77,7 +77,9 @@ Reads public manifest fields from a `.kdna` `File` object without
 uploading it or performing any decryption.
 
 ```js
-const meta = await readKDNAMetadata(file)
+const meta = await readKDNAMetadata(file, {
+  maxSizeBytes: 10 * 1024 * 1024,
+})
 ```
 
 Returns:
@@ -94,6 +96,7 @@ Returns:
 }
 ```
 
+Throws `KDNAFileSizeError` if `maxSizeBytes` is set and the file is too large.
 Throws `KDNAFormatError` if the file is not a valid `.kdna` container.
 
 ---

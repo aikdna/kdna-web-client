@@ -7,6 +7,16 @@ export class KDNAFormatError extends Error {
   }
 }
 
+export class KDNAFileSizeError extends Error {
+  constructor(message, options = {}) {
+    super(message);
+    this.name = 'KDNAFileSizeError';
+    this.maxSizeBytes = options.maxSizeBytes || null;
+    this.actualSizeBytes = options.actualSizeBytes || null;
+    this.code = options.code || 'KDNA_FILE_TOO_LARGE';
+  }
+}
+
 export class KDNAUploadError extends Error {
   constructor(message, options = {}) {
     super(message);
@@ -35,6 +45,10 @@ const CENTRAL_DIRECTORY_SIGNATURE = 0x02014b50;
 const LOCAL_FILE_SIGNATURE = 0x04034b50;
 const METHOD_STORE = 0;
 const METHOD_DEFLATE = 8;
+const KDNA_MIMETYPES = new Set([
+  'application/vnd.aikdna.kdna+zip',
+  'application/vnd.kdna.asset',
+]);
 
 function uint16(view, offset) {
   return view.getUint16(offset, true);
@@ -133,15 +147,36 @@ function normalizeManifest(manifest, file, entries) {
   };
 }
 
-export async function readKDNAMetadata(file) {
+export async function readKDNAMetadata(file, options = {}) {
   if (!file || typeof file.arrayBuffer !== 'function') {
     throw new KDNAFormatError('readKDNAMetadata requires a File or Blob.', {
       code: 'KDNA_FILE_REQUIRED',
     });
   }
 
+  if (options.maxSizeBytes != null && file.size > options.maxSizeBytes) {
+    throw new KDNAFileSizeError(`KDNA file exceeds maxSizeBytes (${options.maxSizeBytes}).`, {
+      maxSizeBytes: options.maxSizeBytes,
+      actualSizeBytes: file.size,
+    });
+  }
+
   const buffer = await file.arrayBuffer();
   const entries = listZipEntries(buffer);
+  const mimetypeEntry = entries.get('mimetype');
+  if (!mimetypeEntry) {
+    throw new KDNAFormatError('KDNA container is missing mimetype.', {
+      code: 'KDNA_MIMETYPE_MISSING',
+    });
+  }
+
+  const mimetype = textDecoder.decode(await readZipEntry(buffer, mimetypeEntry)).trim();
+  if (!KDNA_MIMETYPES.has(mimetype)) {
+    throw new KDNAFormatError(`Unsupported KDNA mimetype: ${mimetype || '(empty)'}.`, {
+      code: 'KDNA_MIMETYPE_INVALID',
+    });
+  }
+
   const manifestEntry = entries.get('kdna.json');
   if (!manifestEntry) {
     throw new KDNAFormatError('KDNA container is missing kdna.json.', {
