@@ -61,7 +61,7 @@ input.onchange = async () => {
     const result = await manager.load(fileId, { profile: 'compact' })
     console.log(result.content)
   } else {
-    console.log('Missing:', plan.missing)  // e.g. ['password']
+    console.log('Missing:', plan.missing)  // e.g. ['enter_password']
   }
 }
 input.click()
@@ -77,7 +77,9 @@ Reads public manifest fields from a `.kdna` `File` object without
 uploading it or performing any decryption.
 
 ```js
-const meta = await readKDNAMetadata(file)
+const meta = await readKDNAMetadata(file, {
+  maxSizeBytes: 10 * 1024 * 1024,
+})
 ```
 
 Returns:
@@ -94,6 +96,7 @@ Returns:
 }
 ```
 
+Throws `KDNAFileSizeError` if `maxSizeBytes` is set and the file is too large.
 Throws `KDNAFormatError` if the file is not a valid `.kdna` container.
 
 ---
@@ -139,7 +142,7 @@ const manager = new KDNALoadPlanManager(baseUrl)
 ```js
 const plan = await manager.planLoad('abc123', {
   hasPassword: false,
-  hasLicenseKey: false,
+  entitlementToken: null,
 })
 ```
 
@@ -148,7 +151,7 @@ Returns:
 ```ts
 {
   canProceed:   boolean
-  missing:      string[]    // e.g. ['password']
+  missing:      string[]    // e.g. ['enter_password']
   requirements: {
     password:   { required: boolean, hint: string | null }
     licenseKey: { required: boolean }
@@ -162,8 +165,7 @@ Returns:
 const result = await manager.load('abc123', {
   profile:          'compact',
   password:         '...',   // only if required
-  licenseKey:       '...',   // only if required
-  entitlementToken: '...',   // only if required
+  entitlementToken: { status: 'active' }, // signed entitlement from /activate, only if required
 })
 ```
 
@@ -202,11 +204,14 @@ See [docs/security-model.md](./docs/security-model.md).
 
 Short version:
 
-- This package reads only public header bytes from the `.kdna` file.
-  It does not attempt to parse the encrypted payload.
-- Passwords and license keys are passed as arguments to `manager.load()`
-  and are POSTed directly to the server endpoint. They are not stored
-  in any object property or module-level variable.
+- This package reads the local `.kdna` file in memory to inspect the ZIP
+  directory and public `kdna.json` manifest. It does not attempt to parse or
+  decrypt payload entries.
+- Passwords and signed entitlement records or tokens are passed as
+  arguments to `manager.load()` and are POSTed directly to the server
+  endpoint. They are not stored in any object property or module-level
+  variable. Raw license keys belong on your activation endpoint, not
+  `/load`.
 - This package has no Node.js built-in dependencies. It runs entirely
   within the browser's security model.
 
