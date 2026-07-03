@@ -61,7 +61,7 @@ input.onchange = async () => {
     const result = await manager.load(fileId, { profile: 'compact' })
     console.log(result.content)
   } else {
-    console.log('Missing:', plan.missing)  // e.g. ['password']
+    console.log('Missing:', plan.missing)  // e.g. ['enter_password']
   }
 }
 input.click()
@@ -142,7 +142,7 @@ const manager = new KDNALoadPlanManager(baseUrl)
 ```js
 const plan = await manager.planLoad('abc123', {
   hasPassword: false,
-  hasLicenseKey: false,
+  entitlementToken: null,
 })
 ```
 
@@ -151,7 +151,7 @@ Returns:
 ```ts
 {
   canProceed:   boolean
-  missing:      string[]    // e.g. ['password']
+  missing:      string[]    // e.g. ['enter_password']
   requirements: {
     password:   { required: boolean, hint: string | null }
     licenseKey: { required: boolean }
@@ -165,8 +165,7 @@ Returns:
 const result = await manager.load('abc123', {
   profile:          'compact',
   password:         '...',   // only if required
-  licenseKey:       '...',   // only if required
-  entitlementToken: '...',   // only if required
+  entitlementToken: { status: 'active' }, // signed entitlement from /activate, only if required
 })
 ```
 
