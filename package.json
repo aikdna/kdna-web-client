@@ -8,6 +8,7 @@
   },
   "files": [
     "src/",
+    "docs/",
     "LICENSE",
     "NOTICE",
     "README.md"
