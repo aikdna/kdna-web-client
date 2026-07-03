@@ -9,7 +9,7 @@ and transmits, and what it explicitly does not do.
 
 | Operation | How |
 |-----------|-----|
-| Read public metadata | Parses the `.kdna` file header in-memory using the File API |
+| Read public metadata | Reads the local `.kdna` file in-memory and parses ZIP metadata plus public `kdna.json` |
 | Upload a file to the server | `fetch` POST with `multipart/form-data` |
 | Drive the load-plan flow | `fetch` POST to `/plan-load` and `/load` |
 | Forward credentials to `/load` | Single `fetch` POST — credentials not stored |
@@ -27,9 +27,9 @@ and transmits, and what it explicitly does not do.
 - **No Node.js built-ins.** The browser bundle contains no `fs`,
   `crypto`, `path`, `Buffer`, or `process` references. It runs in a
   standard browser environment.
-- **No local payload parsing.** File bytes beyond the public header are
-  forwarded to the server as-is. This package does not attempt to
-  decode, deserialize, or display payload content.
+- **No local payload parsing.** The package may see ZIP entry names while
+  locating `kdna.json`, but it does not attempt to decode, deserialize,
+  or display payload content.
 
 ---
 
@@ -56,9 +56,11 @@ The password never touches `localStorage`, `sessionStorage`,
 
 ## File bytes in the browser
 
-`readKDNAMetadata(file)` reads only the header bytes needed to
-identify the format version and extract public manifest fields.
-It does not read the full file into memory.
+`readKDNAMetadata(file)` reads the local file into memory so it can locate
+the ZIP central directory, verify the KDNA mimetype entry, and extract
+public manifest fields from `kdna.json`. It does not parse or decrypt
+payload entries. Use the `maxSizeBytes` option when you need a browser-side
+memory guard before metadata inspection.
 
 `uploadKDNA(file, endpoint)` sends the full file bytes to the server
 endpoint using the `fetch` API. The bytes are not retained after the

@@ -205,8 +205,9 @@ See [docs/security-model.md](./docs/security-model.md).
 
 Short version:
 
-- This package reads only public header bytes from the `.kdna` file.
-  It does not attempt to parse the encrypted payload.
+- This package reads the local `.kdna` file in memory to inspect the ZIP
+  directory and public `kdna.json` manifest. It does not attempt to parse or
+  decrypt payload entries.
 - Passwords and license keys are passed as arguments to `manager.load()`
   and are POSTed directly to the server endpoint. They are not stored
   in any object property or module-level variable.
