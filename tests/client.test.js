@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   KDNAFileSizeError,
   KDNAFormatError,
@@ -180,4 +181,12 @@ test('KDNALoadPlanManager throws KDNALoadError on failed load calls', async () =
     manager.load('file-1'),
     (error) => error instanceof KDNALoadError && error.status === 403 && error.code === 'denied',
   );
+});
+
+test('security docs keep raw license keys out of load guidance', () => {
+  for (const relPath of ['../README.md', '../docs/security-model.md', '../CONTRIBUTING.md']) {
+    const text = fs.readFileSync(new URL(relPath, import.meta.url), 'utf8');
+    assert.doesNotMatch(text, /Passwords and license keys are arguments\\s+to `manager\\.load\\(\\)`/);
+    assert.doesNotMatch(text, /must not accept, store, or transmit passwords or\\s+license keys/);
+  }
 });

@@ -38,8 +38,13 @@ Use `git commit -s` to add it automatically. No CLA is required.
 Contributions that violate the following will be rejected:
 
 - This package **must not** perform decryption of any kind.
-- This package **must not** accept, store, or transmit passwords or
-  license keys.
+- This package **must not** store passwords, raw license keys, or signed
+  entitlement records in object properties, module-level variables,
+  browser storage, or caches.
+- This package may POST passwords and signed entitlement records directly
+  to compatible server endpoints for a single in-flight load request.
+  Raw license keys must travel only to an activation endpoint, never to
+  `/load`.
 - This package **must not** include Node.js built-in modules (`fs`,
   `crypto`, `path`, etc.) in the browser bundle.
 - File content read by this package is limited to metadata and header

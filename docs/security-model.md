@@ -20,10 +20,11 @@ and transmits, and what it explicitly does not do.
 
 - **No decryption.** The package does not attempt to decrypt any part
   of the `.kdna` payload, even if it has access to a password.
-- **No credential storage.** Passwords and license keys are arguments
-  to `manager.load()`. They are POSTed to the server and then garbage
-  collected with the call frame. They are never assigned to a property
-  on a long-lived object.
+- **No credential storage.** Passwords and signed entitlement records or
+  tokens are arguments to `manager.load()`. They are POSTed to the server
+  and then garbage collected with the call frame. Raw license keys belong
+  on your activation endpoint, not `/load`. Credentials are never assigned
+  to a property on a long-lived object.
 - **No Node.js built-ins.** The browser bundle contains no `fs`,
   `crypto`, `path`, `Buffer`, or `process` references. It runs in a
   standard browser environment.
