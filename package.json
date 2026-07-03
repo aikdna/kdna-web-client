@@ -1,6 +1,6 @@
 {
   "name": "@aikdna/kdna-web-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Browser-safe KDNA utilities — file selection, metadata inspection, upload, and load-plan state management. Never performs decryption.",
   "type": "module",
   "exports": {
@@ -15,10 +15,12 @@
     "SECURITY.md"
   ],
   "scripts": {
-    "ci": "npm test && npm run build && npm run size && npm pack --dry-run --json",
+    "ci": "npm test && npm run lint && npm run build && npm run size && npm pack --dry-run --json",
     "test": "node --test tests/client.test.js",
+    "lint": "node scripts/lint.js",
     "build": "node scripts/build.js",
-    "size": "node scripts/size.js"
+    "size": "node scripts/size.js",
+    "prepublishOnly": "npm run ci"
   },
   "engines": {
     "node": ">=18"
@@ -28,7 +30,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aikdna/kdna-web-client.git"
+    "url": "git+https://github.com/aikdna/kdna-web-client.git"
   },
   "bugs": {
     "url": "https://github.com/aikdna/kdna-web-client/issues"

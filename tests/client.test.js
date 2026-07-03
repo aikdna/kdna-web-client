@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { File as NodeFile } from 'node:buffer';
 import fs from 'node:fs';
 import {
   KDNAFileSizeError,
@@ -10,6 +11,8 @@ import {
   readKDNAMetadata,
   uploadKDNA,
 } from '../src/index.js';
+
+const FileCtor = globalThis.File || NodeFile;
 
 function u16(n) {
   const b = new Uint8Array(2);
@@ -81,7 +84,7 @@ function makeAssetFile(mimetype = 'application/vnd.kdna.asset') {
     }),
     'payload.kdnab': '{}',
   });
-  return new File([zip], 'browser.kdna', { type: 'application/vnd.kdna.asset' });
+  return new FileCtor([zip], 'browser.kdna', { type: 'application/vnd.kdna.asset' });
 }
 
 test('readKDNAMetadata reads public manifest fields without a server', async () => {
