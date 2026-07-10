@@ -213,7 +213,15 @@ Short version:
   variable. Raw license keys belong on your activation endpoint, not
   `/load`.
 - This package has no Node.js built-in dependencies. It runs entirely
-  within the browser's security model.
+within the browser's security model.
+
+## Consumption traces
+
+The optional trace viewer is for application-level transparency: it can show a
+selected primary asset, bounded advisors, rejected candidates, budget status,
+and provenance. Browser clients should receive a projection or trace from a
+trusted application endpoint; they must not treat a sidecar as permission to
+read a protected payload.
 
 ---
 
