@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 (2026-07-13)
+
+- Accept only the single current KDNA media type and required container entries.
+- Keep browser inspection limited to public manifest metadata.
+- Document the server-produced Runtime Capsule as the Agent-facing load result.
+
 ## 0.1.1 (2026-07-03)
 
 - Normalize `repository.url` metadata for npm.

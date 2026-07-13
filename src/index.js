@@ -45,10 +45,7 @@ const CENTRAL_DIRECTORY_SIGNATURE = 0x02014b50;
 const LOCAL_FILE_SIGNATURE = 0x04034b50;
 const METHOD_STORE = 0;
 const METHOD_DEFLATE = 8;
-const KDNA_MIMETYPES = new Set([
-  'application/vnd.aikdna.kdna+zip',
-  'application/vnd.kdna.asset',
-]);
+const KDNA_MIMETYPE = 'application/vnd.kdna.asset';
 
 function uint16(view, offset) {
   return view.getUint16(offset, true);
@@ -163,6 +160,11 @@ export async function readKDNAMetadata(file, options = {}) {
 
   const buffer = await file.arrayBuffer();
   const entries = listZipEntries(buffer);
+  if (entries.keys().next().value !== 'mimetype') {
+    throw new KDNAFormatError('KDNA container must store mimetype as its first entry.', {
+      code: 'KDNA_MIMETYPE_NOT_FIRST',
+    });
+  }
   const mimetypeEntry = entries.get('mimetype');
   if (!mimetypeEntry) {
     throw new KDNAFormatError('KDNA container is missing mimetype.', {
@@ -170,8 +172,13 @@ export async function readKDNAMetadata(file, options = {}) {
     });
   }
 
-  const mimetype = textDecoder.decode(await readZipEntry(buffer, mimetypeEntry)).trim();
-  if (!KDNA_MIMETYPES.has(mimetype)) {
+  if (mimetypeEntry.method !== METHOD_STORE) {
+    throw new KDNAFormatError('KDNA mimetype entry must be stored without compression.', {
+      code: 'KDNA_MIMETYPE_COMPRESSED',
+    });
+  }
+  const mimetype = textDecoder.decode(await readZipEntry(buffer, mimetypeEntry));
+  if (mimetype !== KDNA_MIMETYPE) {
     throw new KDNAFormatError(`Unsupported KDNA mimetype: ${mimetype || '(empty)'}.`, {
       code: 'KDNA_MIMETYPE_INVALID',
     });
@@ -181,6 +188,11 @@ export async function readKDNAMetadata(file, options = {}) {
   if (!manifestEntry) {
     throw new KDNAFormatError('KDNA container is missing kdna.json.', {
       code: 'KDNA_MANIFEST_MISSING',
+    });
+  }
+  if (!entries.has('payload.kdnab')) {
+    throw new KDNAFormatError('KDNA container is missing payload.kdnab.', {
+      code: 'KDNA_PAYLOAD_MISSING',
     });
   }
 
