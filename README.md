@@ -59,7 +59,7 @@ input.onchange = async () => {
 
   if (plan.canProceed) {
     const result = await manager.load(fileId, { profile: 'compact' })
-    console.log(result.content)
+    console.log(result.capsule.context)
   } else {
     console.log('Missing:', plan.missing)  // e.g. ['enter_password']
   }
@@ -169,14 +169,17 @@ const result = await manager.load('abc123', {
 })
 ```
 
-Returns the `/load` response from the server:
+Returns the `/load` response from the server. The Agent-facing artifact is the
+Runtime Capsule; `content` is a web-UI convenience alias of `capsule.context`:
 
 ```ts
 {
-  domain:   string
-  version:  string
-  profile:  string
-  content:  string
+  content: object
+  capsule: {
+    type: "kdna.context.capsule"
+    version: "1.0"
+    context: object
+  }
 }
 ```
 
@@ -204,9 +207,9 @@ See [docs/security-model.md](./docs/security-model.md).
 
 Short version:
 
-- This package reads the local `.kdna` file in memory to inspect the ZIP
-  directory and public `kdna.json` manifest. It does not attempt to parse or
-  decrypt payload entries.
+- This package reads only the container header and public `kdna.json` manifest
+  in memory. It never parses, decrypts, or exposes `payload.kdnab`; loading is
+  delegated to the official server-side toolchain.
 - Passwords and signed entitlement records or tokens are passed as
   arguments to `manager.load()` and are POSTed directly to the server
   endpoint. They are not stored in any object property or module-level

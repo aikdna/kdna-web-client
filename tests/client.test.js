@@ -96,9 +96,11 @@ test('readKDNAMetadata reads public manifest fields without a server', async () 
   assert.equal(meta.encrypted, false);
 });
 
-test('readKDNAMetadata accepts current v1 KDNA mimetype', async () => {
-  const meta = await readKDNAMetadata(makeAssetFile('application/vnd.aikdna.kdna+zip'));
-  assert.equal(meta.domain, 'kdna:test:browser');
+test('readKDNAMetadata rejects removed KDNA mimetypes', async () => {
+  await assert.rejects(
+    readKDNAMetadata(makeAssetFile('application/vnd.aikdna.kdna+zip')),
+    (error) => error instanceof KDNAFormatError && error.code === 'KDNA_MIMETYPE_INVALID',
+  );
 });
 
 test('readKDNAMetadata rejects unsupported mimetype entries', async () => {
@@ -159,7 +161,15 @@ test('KDNALoadPlanManager drives plan-load and load JSON calls', async () => {
           plan: { can_load_now: false, required_action: 'enter_password', state: 'needs_password' },
         }));
       }
-      return new Response(JSON.stringify({ content: 'loaded', profile: body.profile }));
+      return new Response(JSON.stringify({
+        content: { highest_question: 'What should be loaded?' },
+        profile: body.profile,
+        capsule: {
+          type: 'kdna.context.capsule',
+          version: '1.0',
+          context: { highest_question: 'What should be loaded?' },
+        },
+      }));
     },
   });
 
@@ -168,7 +178,8 @@ test('KDNALoadPlanManager drives plan-load and load JSON calls', async () => {
   assert.equal(plan.requirements.password.required, true);
 
   const loaded = await manager.load('file-1', { profile: 'compact', password: 'pw' });
-  assert.equal(loaded.content, 'loaded');
+  assert.equal(loaded.capsule.type, 'kdna.context.capsule');
+  assert.equal(loaded.content.highest_question, 'What should be loaded?');
   assert.deepEqual(paths, ['/api/kdna/plan-load', '/api/kdna/load']);
 });
 
