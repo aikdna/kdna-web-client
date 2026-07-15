@@ -36,6 +36,13 @@ export class KDNALoadError extends Error {
   constructor(message: string, options?: KDNAErrorOptions);
 }
 
+export declare const KDNA_SCHEMA_AUTHORITY: Readonly<{
+  core_commit: 'ca6ede2b4536215b3d42fe30404afa7d66cf4ddd';
+  aggregate_sha256: '8783cb1786fbaaaa5e15641c8d2f790db143fde62bb0afdbdc2dbbce63a67876';
+  judgment_trace_sha256: 'a260e5abbcc68bf8df11ba738b5d475901b2950668c4718e415355adc723c7b0';
+  runtime_capsule_sha256: '5ecabe3c02bc09e638c3391d8747c5d48b0f357776ca3b837bc2e03310dcc339';
+}>;
+
 export interface KDNAMetadata {
   domain: string | null;
   version: string | null;
@@ -73,7 +80,116 @@ export class KDNALoadPlanManager {
     plan: Record<string, unknown>;
     response: Record<string, unknown>;
   }>;
-  load(fileId: string, options?: Record<string, unknown>): Promise<Record<string, unknown>>;
+  load(fileId: string, options?: Record<string, unknown>): Promise<KDNALoadResponse>;
+}
+
+export type KDNAJsonValue = null | boolean | number | string | KDNAJsonValue[] | {
+  [key: string]: KDNAJsonValue;
+};
+
+export interface KDNADigestComparison {
+  state: 'matched' | 'mismatched' | 'not_compared' | 'unavailable';
+  against: 'external_expected' | 'manifest_declaration' | 'checksum_declaration' | null;
+  expected: string | null;
+  source:
+    | 'caller'
+    | 'registry'
+    | 'install_receipt'
+    | 'lockfile'
+    | 'kdna.json.content_digest'
+    | 'kdna.json.authoring.content_digest'
+    | 'checksums.json.entry_set_digest'
+    | null;
+}
+
+export interface KDNADigestValue {
+  value: string | null;
+  basis: string;
+  comparison: KDNADigestComparison;
+}
+
+export interface KDNADigestEvidence {
+  profile: 'kdna.digest-evidence';
+  profile_version: '0.1.0';
+  asset: KDNADigestValue;
+  content: KDNADigestValue;
+  runtime_entry_set: KDNADigestValue;
+}
+
+export interface KDNARuntimeCapsule {
+  type: 'kdna.runtime-capsule';
+  contract_version: '0.1.0';
+  asset: {
+    asset_id: string;
+    asset_uid: string;
+    version: string;
+    judgment_version: string;
+  };
+  digests: KDNADigestEvidence;
+  signature: { state: 'verified' | 'not_checked' | 'absent'; issuer?: string };
+  access: 'public' | 'licensed' | 'remote';
+  risk_level: string | null;
+  profile: 'index' | 'compact' | 'scenario' | 'full';
+  context: { [key: string]: KDNAJsonValue };
+  trace: {
+    payload_encoding: 'cbor';
+    loaded_by: 'kdna-core';
+    loaded_at: string;
+    input_kind: 'packaged_file' | 'packaged_bytes';
+    runtime_eligible: true;
+    schema_valid: true;
+    signature_state: 'verified' | 'not_checked' | 'absent';
+    profile: 'index' | 'compact' | 'scenario' | 'full';
+  };
+}
+
+export interface KDNALoadResponse {
+  capsule: KDNARuntimeCapsule;
+  content?: KDNARuntimeCapsule['context'];
+  profile?: KDNARuntimeCapsule['profile'];
+}
+
+export interface JudgmentTraceHostCapabilities {
+  type: 'kdna.agent-host-capabilities';
+  protocol_version: '0.1.0';
+  capability_basis: 'registered_descriptor' | 'legacy_assumption';
+  host_protocols: Array<'kdna.agent-host'>;
+  capsule_versions: Array<'0.1.0'>;
+  capsule_digest_profiles: Array<'kdna.canonicalization.runtime-capsule-jcs'>;
+  capsule_digest_profile_versions: ['0.1.0'];
+}
+
+export interface JudgmentTraceHostReceipt {
+  protocol: 'kdna.agent-host';
+  protocol_version: '0.1.0';
+  request_id: string;
+  runtime_receipt: {
+    type: 'kdna.agent-host.runtime-receipt';
+    contract_version: '0.1.0';
+    capsule_version: '0.1.0';
+    capsule_digest_profile: 'kdna.canonicalization.runtime-capsule-jcs';
+    capsule_digest_profile_version: '0.1.0';
+    sender_capsule_delivery_digest: string;
+    host_recomputed_capsule_delivery_digest: string;
+    echoed_capsule_delivery_digest: string;
+    capsule_delivery_comparison: 'matched' | 'mismatched';
+    capsule_schema_validation: 'passed';
+    asset_id_correlation: 'matched';
+    provider_execution_status: 'completed' | 'not_started' | 'failed' | 'cancelled' | 'timed_out';
+    semantic_consumption: { state: 'not_observed'; basis: null };
+    model_identity: { value: string | null; basis: 'host_reported' | 'not_observed' };
+    usage: {
+      elapsed_ms: number;
+      elapsed_basis: 'host_monotonic';
+      tokens_used: number | null;
+      model_calls: number | null;
+      basis: 'host_reported' | 'not_observed';
+    };
+  };
+  outcome: {
+    judgment: { answer: string; reasoning: string[]; confidence: string | null };
+    usage: { tokens_used: number; model_calls: number } | null;
+  } | null;
 }
 
 export interface JudgmentTrace {
@@ -90,7 +206,20 @@ export interface JudgmentTrace {
   parent_trace_id: string | null;
   timestamp: string;
   overall_status: 'execution_completed' | 'blocked' | 'execution_failed' | 'cancelled' | 'timed_out';
-  runtime_contract: Record<string, unknown>;
+  runtime_contract: {
+    plan_capsule_versions: ['0.1.0'];
+    core_capsule_versions: Array<'0.1.0'>;
+    plan_host_protocols: ['kdna.agent-host'];
+    host_capabilities: JudgmentTraceHostCapabilities;
+    negotiation_state: 'selected' | 'blocked' | 'not_started';
+    selected_capsule_version: '0.1.0' | null;
+    selected_host_protocol: 'kdna.agent-host' | null;
+    issue_code:
+      | 'KDNA_CAPSULE_CONTRACT_VERSION_UNSUPPORTED'
+      | 'KDNA_HOST_PROTOCOL_UNSUPPORTED'
+      | 'KDNA_HOST_CAPSULE_PAIR_UNSUPPORTED'
+      | null;
+  };
   asset_identity: {
     asset_id: string;
     asset_uid: string;
@@ -98,14 +227,24 @@ export interface JudgmentTrace {
     judgment_version: string;
     access: 'public' | 'licensed' | 'remote';
   };
-  digest_evidence: Record<string, unknown>;
-  capsule_delivery_evidence: Record<string, unknown>;
+  digest_evidence: KDNADigestEvidence;
+  capsule_delivery_evidence: {
+    basis: 'kdna.canonicalization.runtime-capsule-jcs';
+    basis_version: '0.1.0';
+    observed: string | null;
+    sender_computed: boolean;
+    host_recomputed: string | null;
+    host_echoed: string | null;
+    delivered_capsule_version: '0.1.0' | null;
+    host_boundary_comparison: 'matched' | 'mismatched' | 'not_delivered' | 'not_observed' | 'unavailable';
+    request_id: string | null;
+  };
   projection_actual: {
     profile: 'index' | 'compact' | 'scenario' | 'full' | null;
     capsule_delivery_digest: string | null;
     profile_deviated_from_plan: boolean | null;
   };
-  host_receipt: Record<string, unknown> | null;
+  host_receipt: JudgmentTraceHostReceipt | null;
   execution: {
     delivery_status: 'correlated_response' | 'rejected_before_execution' | 'not_delivered';
     semantic_consumption: { state: 'not_observed'; basis: null };
@@ -114,7 +253,13 @@ export interface JudgmentTrace {
     model_identity: { value: string | null; basis: 'host_reported' | 'not_observed' };
   };
   budget: {
-    limits: Record<string, number | null>;
+    limits: {
+      max_projection_chars: number;
+      max_task_chars: number;
+      deadline_ms: number;
+      max_tokens: number | null;
+      max_model_calls: number | null;
+    };
     actual: {
       projection_chars: number | null;
       task_chars: number;
@@ -125,11 +270,11 @@ export interface JudgmentTrace {
       usage_basis: 'host_reported' | 'not_observed';
     };
     comparison: {
-      projection_chars: string;
-      task_chars: string;
-      elapsed_ms: string;
-      tokens_used: string;
-      model_calls: string;
+      projection_chars: 'within_limit' | 'exceeded' | 'not_observed';
+      task_chars: 'within_limit' | 'exceeded';
+      elapsed_ms: 'within_limit' | 'exceeded' | 'not_observed';
+      tokens_used: 'within_limit' | 'exceeded' | 'not_limited' | 'not_observed';
+      model_calls: 'within_limit' | 'exceeded' | 'not_limited' | 'not_observed';
       overall: 'within_limit' | 'exceeded' | 'not_observed';
     };
   };
@@ -139,7 +284,11 @@ export interface JudgmentTrace {
     basis: 'kdna.canonicalization.result-jcs';
     stored: boolean;
   } | null;
-  errors: Array<{ code: string; message: string; phase: string }>;
+  errors: Array<{
+    code: string;
+    message: string;
+    phase: 'plan' | 'negotiation' | 'load' | 'budget' | 'delivery' | 'host' | 'execution';
+  }>;
   warnings: string[];
 }
 

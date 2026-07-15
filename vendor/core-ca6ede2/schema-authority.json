@@ -1,0 +1,15 @@
+{
+  "authority": "kdna-core-schema-closure",
+  "authority_version": "0.1.0",
+  "core_commit": "ca6ede2b4536215b3d42fe30404afa7d66cf4ddd",
+  "aggregate_sha256": "8783cb1786fbaaaa5e15641c8d2f790db143fde62bb0afdbdc2dbbce63a67876",
+  "golden_sha256": "3db52c98e17a6ae1b65fc5af44c7234f88b54f440392a2ec400f2331429d1a04",
+  "schemas": {
+    "agent-host-capabilities.schema.json": "00ab3aeceffae5061faeecfdb82ac95afde4c60ad73faa796b2d7bd463e2e834",
+    "agent-host-receipt.schema.json": "ecdac9d9b6670ead0cf94b3c307b7d9580e4eacdf0d1ce683d2b100b59a3f115",
+    "consumption-plan.schema.json": "f73c52884c59e1566d4e6121e42b9e2dfed43ffbee6452b6239a56cf8262785f",
+    "digest-evidence.schema.json": "294939c0a230639a1ae7b059a28d87310ead350ff03d9d6cf46e112acf3d9f75",
+    "judgment-trace.schema.json": "a260e5abbcc68bf8df11ba738b5d475901b2950668c4718e415355adc723c7b0",
+    "runtime-capsule.schema.json": "5ecabe3c02bc09e638c3391d8747c5d48b0f357776ca3b837bc2e03310dcc339"
+  }
+}

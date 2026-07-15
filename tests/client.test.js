@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { File as NodeFile } from 'node:buffer';
 import fs from 'node:fs';
 import {
+  KDNA_SCHEMA_AUTHORITY,
   KDNAFileSizeError,
   KDNAFormatError,
   KDNALoadError,
@@ -17,6 +18,10 @@ import {
 } from '../src/index.js';
 
 const FileCtor = globalThis.File || NodeFile;
+const golden = JSON.parse(fs.readFileSync(
+  new URL('../vendor/core-ca6ede2/runtime-contract-golden.json', import.meta.url),
+  'utf8',
+));
 
 function u16(n) {
   const b = new Uint8Array(2);
@@ -92,78 +97,35 @@ function makeAssetFile(mimetype = 'application/vnd.kdna.asset') {
 }
 
 function currentRuntimeCapsule() {
-  const digest = `sha256:${'a'.repeat(64)}`;
-  const digestValue = {
-    value: digest,
-    basis: 'kdna.digest-basis.container-bytes',
-    comparison: { state: 'not_compared', against: null, expected: null, source: null },
-  };
-  return {
-    type: 'kdna.runtime-capsule',
-    contract_version: '0.1.0',
-    asset: {
-      asset_id: 'kdna:test:browser',
-      asset_uid: 'urn:uuid:00000000-0000-4000-8000-000000000001',
-      version: '0.1.0',
-      judgment_version: '0.1.0',
-    },
-    digests: {
-      profile: 'kdna.digest-evidence',
-      profile_version: '0.1.0',
-      asset: digestValue,
-      content: { ...digestValue, basis: 'kdna.digest-basis.content-tree' },
-      runtime_entry_set: { ...digestValue, basis: 'kdna.digest-basis.runtime-entry-set' },
-    },
-    signature: { state: 'not_checked' },
-    access: 'public',
-    risk_level: null,
-    profile: 'compact',
-    context: { highest_question: 'What should be loaded?' },
-    trace: {
-      payload_encoding: 'cbor',
-      loaded_by: 'kdna-core',
-      loaded_at: '2026-07-15T00:00:00.000Z',
-      input_kind: 'packaged_bytes',
-      runtime_eligible: true,
-      schema_valid: true,
-      signature_state: 'not_checked',
-      profile: 'compact',
-    },
-  };
+  return structuredClone(golden.request.capsule);
 }
 
 function currentJudgmentTrace() {
-  const digest = `sha256:${'b'.repeat(64)}`;
-  return {
-    type: 'kdna.judgment-trace',
-    contract_version: '0.1.0',
-    trace_id: 'trace_0123456789abcdef',
-    plan_ref: { plan_digest: digest },
-    parent_trace_id: null,
-    timestamp: '2026-07-15T00:00:01.000Z',
-    overall_status: 'execution_completed',
-    runtime_contract: {},
-    asset_identity: { asset_id: 'kdna:test:browser', version: '0.1.0' },
-    digest_evidence: {},
-    capsule_delivery_evidence: {},
-    projection_actual: { profile: 'compact', capsule_delivery_digest: digest, profile_deviated_from_plan: false },
-    host_receipt: {},
-    execution: {
-      delivery_status: 'correlated_response',
-      semantic_consumption: { state: 'not_observed', basis: null },
-      execution_status: 'completed',
-      conformance_status: 'not_evaluated',
-      model_identity: { value: null, basis: 'not_observed' },
-    },
-    budget: {
-      limits: {},
-      actual: { tokens_used: null, usage_basis: 'not_observed' },
-      comparison: { overall: 'within_limit' },
-    },
-    result_ref: { result_digest: digest, stored: true },
-    errors: [],
-    warnings: [],
+  return structuredClone(golden.trace);
+}
+
+function hostileTraces() {
+  const cases = [];
+  const add = (name, mutate) => {
+    const trace = currentJudgmentTrace();
+    mutate(trace);
+    cases.push([name, trace]);
   };
+  add('empty host capabilities', (trace) => { trace.runtime_contract.host_capabilities = {}; });
+  add('forged receipt', (trace) => { trace.host_receipt.runtime_receipt.forged = true; });
+  add('illegal digest comparison', (trace) => {
+    trace.digest_evidence.asset.comparison = {
+      state: 'matched', against: null, expected: null, source: null,
+    };
+  });
+  add('negative budget and malformed error', (trace) => {
+    trace.budget.actual.tokens_used = -1;
+    trace.errors = [{}];
+  });
+  add('inconsistent negotiation', (trace) => {
+    trace.runtime_contract.selected_capsule_version = null;
+  });
+  return cases;
 }
 
 test('readKDNAMetadata reads public manifest fields without a server', async () => {
@@ -241,8 +203,7 @@ test('KDNALoadPlanManager drives plan-load and load JSON calls', async () => {
         }));
       }
       const capsule = currentRuntimeCapsule();
-      capsule.profile = body.profile;
-      capsule.trace.profile = body.profile;
+      assert.equal(body.profile, capsule.profile);
       return new Response(JSON.stringify({
         content: capsule.context,
         profile: body.profile,
@@ -258,8 +219,20 @@ test('KDNALoadPlanManager drives plan-load and load JSON calls', async () => {
   const loaded = await manager.load('file-1', { profile: 'compact', password: 'pw' });
   assert.equal(loaded.capsule.type, 'kdna.runtime-capsule');
   assert.equal(loaded.capsule.contract_version, '0.1.0');
-  assert.equal(loaded.content.highest_question, 'What should be loaded?');
+  assert.equal(loaded.content.highest_question, golden.request.capsule.context.highest_question);
   assert.deepEqual(paths, ['/api/kdna/plan-load', '/api/kdna/load']);
+});
+
+test('KDNALoadPlanManager rejects forged Runtime Capsules at the load boundary', async () => {
+  const capsule = currentRuntimeCapsule();
+  capsule.forged = true;
+  const manager = new KDNALoadPlanManager('/api/kdna', {
+    fetch: async () => new Response(JSON.stringify({ capsule, content: capsule.context })),
+  });
+  await assert.rejects(
+    manager.load('file-1'),
+    (error) => error instanceof KDNALoadError && error.code === 'KDNA_RUNTIME_CAPSULE_INVALID',
+  );
 });
 
 test('KDNALoadPlanManager throws KDNALoadError on failed load calls', async () => {
@@ -295,6 +268,26 @@ test('JudgmentTrace parser accepts only the current contract discriminator', () 
   assert.throws(() => parseJudgmentTrace(JSON.stringify(stale)), (error) => (
     error instanceof KDNAFormatError && error.code === 'KDNA_JUDGMENT_TRACE_INVALID'
   ));
+});
+
+test('all web trace boundaries reject hostile nested mutations', () => {
+  const container = { ownerDocument: {}, replaceChildren() {} };
+  const viewer = new JudgmentTraceViewer(container);
+  for (const [name, trace] of hostileTraces()) {
+    assert.equal(validateJudgmentTrace(trace).valid, false, name);
+    assert.throws(() => parseJudgmentTrace(JSON.stringify(trace)), KDNAFormatError, name);
+    assert.throws(() => judgmentTraceView(trace), KDNAFormatError, name);
+    assert.throws(() => viewer.render(trace), KDNAFormatError, name);
+  }
+});
+
+test('validator authority is pinned to the audited Core schema closure', () => {
+  assert.deepEqual(KDNA_SCHEMA_AUTHORITY, {
+    core_commit: 'ca6ede2b4536215b3d42fe30404afa7d66cf4ddd',
+    aggregate_sha256: '8783cb1786fbaaaa5e15641c8d2f790db143fde62bb0afdbdc2dbbce63a67876',
+    judgment_trace_sha256: 'a260e5abbcc68bf8df11ba738b5d475901b2950668c4718e415355adc723c7b0',
+    runtime_capsule_sha256: '5ecabe3c02bc09e638c3391d8747c5d48b0f357776ca3b837bc2e03310dcc339',
+  });
 });
 
 test('judgmentTraceView keeps delivery, execution, consumption, and conformance distinct', () => {

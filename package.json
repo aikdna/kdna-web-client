@@ -1,6 +1,6 @@
 {
   "name": "@aikdna/kdna-web-client",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Browser-safe KDNA utilities \u2014 file selection, metadata inspection, upload, and load-plan state management. Never performs decryption.",
   "type": "module",
   "exports": {
@@ -19,13 +19,16 @@
     "SECURITY.md"
   ],
   "scripts": {
-    "ci": "npm test && npm run typecheck && npm run lint && npm run build && npm run size && npm run naming:check && npm pack --dry-run --json",
+    "ci": "npm run validators:check && npm test && npm run typecheck && npm run lint && npm run build && npm run size && npm run naming:check && npm pack --dry-run --json",
     "test": "node --test tests/client.test.js",
     "typecheck": "tsc --noEmit",
     "lint": "node scripts/lint.js",
     "build": "node scripts/build.js",
     "size": "node scripts/size.js",
+    "validators:generate": "node scripts/generate-runtime-validators.js --write",
+    "validators:check": "node scripts/generate-runtime-validators.js --check",
     "naming:check": "node scripts/check-naming-integrity.js",
+    "release:binding": "node scripts/check-release-binding.js",
     "prepublishOnly": "npm run ci"
   },
   "engines": {
@@ -34,6 +37,9 @@
   "peerDependencies": {},
   "dependencies": {},
   "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "esbuild": "^0.25.6",
     "typescript": "^5.9.3"
   },
   "license": "Apache-2.0",

@@ -1,3 +1,11 @@
+import {
+  KDNA_SCHEMA_AUTHORITY,
+  validateJudgmentTrace as validateCanonicalJudgmentTrace,
+  validateRuntimeCapsule as validateCanonicalRuntimeCapsule,
+} from './generated/runtime-validators.js';
+
+export { KDNA_SCHEMA_AUTHORITY };
+
 export class KDNAFormatError extends Error {
   constructor(message, options = {}) {
     super(message);
@@ -302,68 +310,35 @@ export class KDNALoadPlanManager {
   }
 
   async load(fileId, options = {}) {
-    return this.post('load', { fileId, ...options });
+    const payload = await this.post('load', { fileId, ...options });
+    if (!validateCanonicalRuntimeCapsule(payload.capsule)) {
+      const details = canonicalValidationErrors(validateCanonicalRuntimeCapsule);
+      throw new KDNALoadError(`Invalid Runtime Capsule: ${details.join('; ')}`, {
+        code: 'KDNA_RUNTIME_CAPSULE_INVALID',
+        response: payload,
+      });
+    }
+    return payload;
   }
 }
 
-const JUDGMENT_TRACE_TYPE = 'kdna.judgment-trace';
-const JUDGMENT_TRACE_CONTRACT_VERSION = '0.1.0';
-const JUDGMENT_TRACE_FIELDS = [
-  'type', 'contract_version', 'trace_id', 'plan_ref', 'parent_trace_id', 'timestamp',
-  'overall_status', 'runtime_contract', 'asset_identity', 'digest_evidence',
-  'capsule_delivery_evidence', 'projection_actual', 'host_receipt', 'execution',
-  'budget', 'result_ref', 'errors', 'warnings',
-];
-
-function isObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+function canonicalValidationErrors(validator) {
+  return (validator.errors ?? []).map((issue) => (
+    `${issue.instancePath || '/'} ${issue.message || issue.keyword}`
+  ));
 }
 
 /**
- * Fail closed on retired trace shapes at the browser boundary. This is a
- * structural discriminator check, not cryptographic or semantic conformance.
+ * Fail closed on any trace that does not satisfy the exact Core schema closure
+ * pinned by KDNA_SCHEMA_AUTHORITY. This verifies shape, not cryptographic or
+ * semantic conformance.
  */
 export function validateJudgmentTrace(trace) {
-  const errors = [];
-  if (!isObject(trace)) return { valid: false, errors: ['trace must be an object'] };
-  const allowed = new Set(JUDGMENT_TRACE_FIELDS);
-  for (const field of JUDGMENT_TRACE_FIELDS) {
-    if (!Object.hasOwn(trace, field)) errors.push(`${field} is required`);
-  }
-  for (const field of Object.keys(trace)) {
-    if (!allowed.has(field)) errors.push(`${field} is not part of the current contract`);
-  }
-  if (trace.type !== JUDGMENT_TRACE_TYPE) errors.push(`type must be ${JUDGMENT_TRACE_TYPE}`);
-  if (trace.contract_version !== JUDGMENT_TRACE_CONTRACT_VERSION) {
-    errors.push(`contract_version must be ${JUDGMENT_TRACE_CONTRACT_VERSION}`);
-  }
-  if (!isObject(trace.execution)) errors.push('execution is required');
-  else {
-    for (const field of ['delivery_status', 'semantic_consumption', 'execution_status', 'conformance_status', 'model_identity']) {
-      if (!Object.hasOwn(trace.execution, field)) errors.push(`execution.${field} is required`);
-    }
-    if (trace.execution.semantic_consumption?.state !== 'not_observed'
-        || trace.execution.semantic_consumption?.basis !== null) {
-      errors.push('semantic consumption must remain not_observed');
-    }
-    if (trace.execution.conformance_status !== 'not_evaluated') {
-      errors.push('conformance status must remain not_evaluated');
-    }
-  }
-  if (!isObject(trace.asset_identity) || typeof trace.asset_identity.asset_id !== 'string') {
-    errors.push('asset_identity.asset_id is required');
-  }
-  if (!isObject(trace.plan_ref) || typeof trace.plan_ref.plan_digest !== 'string') {
-    errors.push('plan_ref.plan_digest is required');
-  }
-  if (!isObject(trace.budget) || !isObject(trace.budget.actual) || !isObject(trace.budget.comparison)) {
-    errors.push('budget evidence is required');
-  }
-  if (!isObject(trace.projection_actual)) errors.push('projection_actual is required');
-  if (!Array.isArray(trace.errors) || !Array.isArray(trace.warnings)) {
-    errors.push('errors and warnings must be arrays');
-  }
-  return { valid: errors.length === 0, errors };
+  const valid = validateCanonicalJudgmentTrace(trace);
+  return {
+    valid,
+    errors: valid ? [] : canonicalValidationErrors(validateCanonicalJudgmentTrace),
+  };
 }
 
 export function parseJudgmentTrace(json) {

@@ -1,11 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 (2026-07-16)
 
 - Replace the non-exported compatibility viewer with a browser-safe current
   JudgmentTrace parser, evidence projection, and dependency-free DOM renderer.
 - Add package-root TypeScript declarations for the complete public surface.
 - Align Runtime Capsule examples and tests with the current Core contract.
+
+- Generate browser validators from the pinned Core schema closure, validate
+  Runtime Capsules at `load()`, and reject hostile nested trace mutations.
+- Bind release publication to the full CI gate and exact no-prefix SemVer tag.
 
 ## 0.2.0 (2026-07-13)
 

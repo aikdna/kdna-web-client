@@ -52,11 +52,11 @@ function isTextFile(file) {
 }
 
 function trackedFiles() {
-  return execFileSync('git', ['ls-files', '-z'], { cwd: root })
+  return execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root })
     .toString('utf8').split('\u0000').filter(Boolean);
 }
 
-function packedFiles() {
+function packOnce() {
   const output = execFileSync('npm', ['pack', '--json', '--ignore-scripts'], {
     cwd: root,
     encoding: 'utf8',
@@ -66,25 +66,33 @@ function packedFiles() {
   if (!report?.filename) throw new Error('npm pack did not report one package.');
   const archive = path.join(root, report.filename);
   try {
+    const bytes = fs.readFileSync(archive);
     const entries = execFileSync('tar', ['-tzf', archive], { encoding: 'utf8' })
       .trim().split('\n').filter(Boolean);
-    return entries
+    const records = entries
       .filter((entry) => entry.startsWith('package/') && isTextFile(entry))
       .map((entry) => ({
         path: entry.slice('package/'.length),
         text: execFileSync('tar', ['-xOf', archive, entry], { encoding: 'utf8' }),
         surface: 'package',
       }));
+    return { bytes, records };
   } finally {
     fs.rmSync(archive, { force: true });
   }
+}
+
+const firstPack = packOnce();
+const secondPack = packOnce();
+if (!firstPack.bytes.equals(secondPack.bytes)) {
+  throw new Error('Two consecutive npm packs were not byte-for-byte deterministic.');
 }
 
 const tracked = trackedFiles();
 const records = tracked
   .filter((file) => file !== allowlistPath && isTextFile(file) && fs.existsSync(path.join(root, file)))
   .map((file) => ({ path: file, text: fs.readFileSync(path.join(root, file), 'utf8'), surface: 'source' }));
-records.push(...packedFiles());
+records.push(...firstPack.records, ...secondPack.records);
 
 const findings = [];
 for (const retiredPath of retiredPaths) {
@@ -104,13 +112,19 @@ for (const record of records) {
     text = text.split(token).join('');
   }
 
-  if (/(?:^|[^A-Za-z0-9])v\d+(?:\.\d+)*(?=$|[^A-Za-z0-9])/giu.test(text)) {
+  const generatedThirdPartyValidator = record.path === 'src/generated/runtime-validators.js';
+  if (!generatedThirdPartyValidator && /(?:^|[^A-Za-z0-9])v\d+(?:\.\d+)*(?=$|[^A-Za-z0-9])/giu.test(text)) {
     findings.push(`${record.surface}:${record.path}: generation-style label`);
   }
   if (/\bv\$\{?[A-Z_]+\}?/u.test(text)) findings.push(`${record.surface}:${record.path}: prefixed release variable`);
   if (/\b(?:interface|type)\s+Trace\b/u.test(text)) findings.push(`${record.surface}:${record.path}: retired public Trace type`);
   for (const token of retiredTokens) {
     if (text.includes(token)) findings.push(`${record.surface}:${record.path}: retired runtime surface`);
+  }
+  if (record.surface === 'package') {
+    for (const privateToken of ['/Users/', '/private/', 'private/x-plan', 'WORKLOG.md', 'AGENTS.md']) {
+      if (text.includes(privateToken)) findings.push(`${record.surface}:${record.path}: private surface`);
+    }
   }
 }
 
@@ -126,4 +140,4 @@ if (findings.length > 0) {
   process.exit(1);
 }
 
-console.log(`Naming integrity passed for ${records.filter((record) => record.surface === 'source').length} source files and ${records.filter((record) => record.surface === 'package').length} actual package files.`);
+console.log(`Naming integrity and deterministic double-pack passed for ${records.filter((record) => record.surface === 'source').length} source files and ${records.filter((record) => record.surface === 'package').length} package-file observations.`);

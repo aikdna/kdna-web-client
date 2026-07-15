@@ -169,8 +169,10 @@ const result = await manager.load('abc123', {
 })
 ```
 
-Returns the `/load` response from the server. The Agent-facing artifact is the
-Runtime Capsule; `content` is a web-UI convenience alias of `capsule.context`:
+Returns the `/load` response from the server only after `capsule` satisfies the
+complete Runtime Capsule schema closure pinned to an audited KDNA Core commit.
+The Agent-facing artifact is the Runtime Capsule; `content` is a web-UI
+convenience alias of `capsule.context`:
 
 ```ts
 {
@@ -228,16 +230,17 @@ within the browser's security model.
 ## Consumption traces
 
 `parseJudgmentTrace`, `judgmentTraceView`, and the dependency-free
-`JudgmentTraceViewer` accept only `type: "kdna.judgment-trace"` with
-`contract_version: "0.1.0"`. They keep Capsule delivery, Host execution,
+`JudgmentTraceViewer` validate the complete JudgmentTrace schema closure pinned
+to the same audited KDNA Core commit and fail closed on unknown or inconsistent
+nested evidence. They keep Capsule delivery, Host execution,
 semantic consumption, and conformance as separate evidence. A correlated Host
 response does not prove that a model semantically consumed the judgment or that
 the answer conforms to it.
 
 Browser clients should receive a trace from a trusted application endpoint.
-The browser check is structural; cryptographic and semantic conformance remain
-server-side KDNA Core responsibilities. A trace is never permission to read a
-protected payload.
+The browser check proves schema conformance only; cryptographic and semantic
+conformance remain server-side KDNA Core responsibilities. A trace is never
+permission to read a protected payload.
 
 ---
 
