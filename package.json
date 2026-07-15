@@ -4,8 +4,12 @@
   "description": "Browser-safe KDNA utilities \u2014 file selection, metadata inspection, upload, and load-plan state management. Never performs decryption.",
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
   },
+  "types": "./src/index.d.ts",
   "files": [
     "src/",
     "docs/",
@@ -15,11 +19,13 @@
     "SECURITY.md"
   ],
   "scripts": {
-    "ci": "npm test && npm run lint && npm run build && npm run size && npm pack --dry-run --json",
+    "ci": "npm test && npm run typecheck && npm run lint && npm run build && npm run size && npm run naming:check && npm pack --dry-run --json",
     "test": "node --test tests/client.test.js",
+    "typecheck": "tsc --noEmit",
     "lint": "node scripts/lint.js",
     "build": "node scripts/build.js",
     "size": "node scripts/size.js",
+    "naming:check": "node scripts/check-naming-integrity.js",
     "prepublishOnly": "npm run ci"
   },
   "engines": {
@@ -27,6 +33,9 @@
   },
   "peerDependencies": {},
   "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

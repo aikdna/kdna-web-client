@@ -305,3 +305,143 @@ export class KDNALoadPlanManager {
     return this.post('load', { fileId, ...options });
   }
 }
+
+const JUDGMENT_TRACE_TYPE = 'kdna.judgment-trace';
+const JUDGMENT_TRACE_CONTRACT_VERSION = '0.1.0';
+const JUDGMENT_TRACE_FIELDS = [
+  'type', 'contract_version', 'trace_id', 'plan_ref', 'parent_trace_id', 'timestamp',
+  'overall_status', 'runtime_contract', 'asset_identity', 'digest_evidence',
+  'capsule_delivery_evidence', 'projection_actual', 'host_receipt', 'execution',
+  'budget', 'result_ref', 'errors', 'warnings',
+];
+
+function isObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Fail closed on retired trace shapes at the browser boundary. This is a
+ * structural discriminator check, not cryptographic or semantic conformance.
+ */
+export function validateJudgmentTrace(trace) {
+  const errors = [];
+  if (!isObject(trace)) return { valid: false, errors: ['trace must be an object'] };
+  const allowed = new Set(JUDGMENT_TRACE_FIELDS);
+  for (const field of JUDGMENT_TRACE_FIELDS) {
+    if (!Object.hasOwn(trace, field)) errors.push(`${field} is required`);
+  }
+  for (const field of Object.keys(trace)) {
+    if (!allowed.has(field)) errors.push(`${field} is not part of the current contract`);
+  }
+  if (trace.type !== JUDGMENT_TRACE_TYPE) errors.push(`type must be ${JUDGMENT_TRACE_TYPE}`);
+  if (trace.contract_version !== JUDGMENT_TRACE_CONTRACT_VERSION) {
+    errors.push(`contract_version must be ${JUDGMENT_TRACE_CONTRACT_VERSION}`);
+  }
+  if (!isObject(trace.execution)) errors.push('execution is required');
+  else {
+    for (const field of ['delivery_status', 'semantic_consumption', 'execution_status', 'conformance_status', 'model_identity']) {
+      if (!Object.hasOwn(trace.execution, field)) errors.push(`execution.${field} is required`);
+    }
+    if (trace.execution.semantic_consumption?.state !== 'not_observed'
+        || trace.execution.semantic_consumption?.basis !== null) {
+      errors.push('semantic consumption must remain not_observed');
+    }
+    if (trace.execution.conformance_status !== 'not_evaluated') {
+      errors.push('conformance status must remain not_evaluated');
+    }
+  }
+  if (!isObject(trace.asset_identity) || typeof trace.asset_identity.asset_id !== 'string') {
+    errors.push('asset_identity.asset_id is required');
+  }
+  if (!isObject(trace.plan_ref) || typeof trace.plan_ref.plan_digest !== 'string') {
+    errors.push('plan_ref.plan_digest is required');
+  }
+  if (!isObject(trace.budget) || !isObject(trace.budget.actual) || !isObject(trace.budget.comparison)) {
+    errors.push('budget evidence is required');
+  }
+  if (!isObject(trace.projection_actual)) errors.push('projection_actual is required');
+  if (!Array.isArray(trace.errors) || !Array.isArray(trace.warnings)) {
+    errors.push('errors and warnings must be arrays');
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+export function parseJudgmentTrace(json) {
+  const trace = JSON.parse(json);
+  const validation = validateJudgmentTrace(trace);
+  if (!validation.valid) {
+    throw new KDNAFormatError(`Invalid JudgmentTrace: ${validation.errors.join('; ')}`, {
+      code: 'KDNA_JUDGMENT_TRACE_INVALID',
+    });
+  }
+  return trace;
+}
+
+export function judgmentTraceView(trace) {
+  const validation = validateJudgmentTrace(trace);
+  if (!validation.valid) {
+    throw new KDNAFormatError(`Invalid JudgmentTrace: ${validation.errors.join('; ')}`, {
+      code: 'KDNA_JUDGMENT_TRACE_INVALID',
+    });
+  }
+  return {
+    traceId: trace.trace_id,
+    status: trace.overall_status,
+    primary: trace.asset_identity.asset_id,
+    assetVersion: trace.asset_identity.version,
+    deliveryStatus: trace.execution.delivery_status,
+    executionStatus: trace.execution.execution_status,
+    semanticConsumption: trace.execution.semantic_consumption.state,
+    conformanceStatus: trace.execution.conformance_status,
+    modelIdentity: trace.execution.model_identity?.value ?? null,
+    modelIdentityBasis: trace.execution.model_identity?.basis ?? 'not_observed',
+    tokensUsed: trace.budget.actual.tokens_used,
+    usageBasis: trace.budget.actual.usage_basis,
+    budgetStatus: trace.budget.comparison.overall,
+    projectionProfile: trace.projection_actual.profile,
+    planDigest: trace.plan_ref.plan_digest,
+    capsuleDeliveryDigest: trace.projection_actual.capsule_delivery_digest,
+    resultDigest: trace.result_ref?.result_digest ?? null,
+    resultStored: trace.result_ref?.stored ?? false,
+    errors: trace.errors,
+    warnings: trace.warnings,
+  };
+}
+
+/** Dependency-free DOM renderer for a trusted application endpoint's trace. */
+export class JudgmentTraceViewer {
+  constructor(container) {
+    if (!container || typeof container.replaceChildren !== 'function') {
+      throw new TypeError('JudgmentTraceViewer requires a DOM container.');
+    }
+    this.container = container;
+  }
+
+  render(trace) {
+    const view = judgmentTraceView(trace);
+    const document = this.container.ownerDocument;
+    const section = document.createElement('section');
+    section.className = 'kdna-judgment-trace';
+    const heading = document.createElement('h3');
+    heading.textContent = `Trace: ${view.traceId}`;
+    section.append(heading);
+    for (const [label, value] of [
+      ['Primary', `${view.primary} ${view.assetVersion}`.trim()],
+      ['Delivery', view.deliveryStatus],
+      ['Execution', view.executionStatus],
+      ['Semantic consumption', view.semanticConsumption],
+      ['Conformance', view.conformanceStatus],
+      ['Budget', view.budgetStatus],
+    ]) {
+      const row = document.createElement('p');
+      row.textContent = `${label}: ${value}`;
+      section.append(row);
+    }
+    this.container.replaceChildren(section);
+    return view;
+  }
+
+  clear() {
+    this.container.replaceChildren();
+  }
+}

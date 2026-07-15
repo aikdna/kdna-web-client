@@ -1,0 +1,36 @@
+{
+  "schema": "kdna.naming-integrity-third-party-allowlist",
+  "schema_version": "0.1.0",
+  "exceptions": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "token": "actions/checkout@v7",
+      "count": 1,
+      "reason": "Third-party GitHub Action coordinate mandated by actions/checkout."
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "token": "actions/setup-node@v6",
+      "count": 1,
+      "reason": "Third-party GitHub Action coordinate mandated by actions/setup-node."
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "token": "actions/checkout@v7",
+      "count": 1,
+      "reason": "Third-party GitHub Action coordinate mandated by actions/checkout."
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "token": "actions/setup-node@v6",
+      "count": 1,
+      "reason": "Third-party GitHub Action coordinate mandated by actions/setup-node."
+    },
+    {
+      "path": "CODE_OF_CONDUCT.md",
+      "token": "v2.1",
+      "count": 2,
+      "reason": "Third-party Contributor Covenant reference label and coordinate."
+    }
+  ]
+}

@@ -8,8 +8,12 @@ import {
   KDNALoadError,
   KDNALoadPlanManager,
   KDNAUploadError,
+  JudgmentTraceViewer,
+  judgmentTraceView,
+  parseJudgmentTrace,
   readKDNAMetadata,
   uploadKDNA,
+  validateJudgmentTrace,
 } from '../src/index.js';
 
 const FileCtor = globalThis.File || NodeFile;
@@ -87,6 +91,81 @@ function makeAssetFile(mimetype = 'application/vnd.kdna.asset') {
   return new FileCtor([zip], 'browser.kdna', { type: 'application/vnd.kdna.asset' });
 }
 
+function currentRuntimeCapsule() {
+  const digest = `sha256:${'a'.repeat(64)}`;
+  const digestValue = {
+    value: digest,
+    basis: 'kdna.digest-basis.container-bytes',
+    comparison: { state: 'not_compared', against: null, expected: null, source: null },
+  };
+  return {
+    type: 'kdna.runtime-capsule',
+    contract_version: '0.1.0',
+    asset: {
+      asset_id: 'kdna:test:browser',
+      asset_uid: 'urn:uuid:00000000-0000-4000-8000-000000000001',
+      version: '0.1.0',
+      judgment_version: '0.1.0',
+    },
+    digests: {
+      profile: 'kdna.digest-evidence',
+      profile_version: '0.1.0',
+      asset: digestValue,
+      content: { ...digestValue, basis: 'kdna.digest-basis.content-tree' },
+      runtime_entry_set: { ...digestValue, basis: 'kdna.digest-basis.runtime-entry-set' },
+    },
+    signature: { state: 'not_checked' },
+    access: 'public',
+    risk_level: null,
+    profile: 'compact',
+    context: { highest_question: 'What should be loaded?' },
+    trace: {
+      payload_encoding: 'cbor',
+      loaded_by: 'kdna-core',
+      loaded_at: '2026-07-15T00:00:00.000Z',
+      input_kind: 'packaged_bytes',
+      runtime_eligible: true,
+      schema_valid: true,
+      signature_state: 'not_checked',
+      profile: 'compact',
+    },
+  };
+}
+
+function currentJudgmentTrace() {
+  const digest = `sha256:${'b'.repeat(64)}`;
+  return {
+    type: 'kdna.judgment-trace',
+    contract_version: '0.1.0',
+    trace_id: 'trace_0123456789abcdef',
+    plan_ref: { plan_digest: digest },
+    parent_trace_id: null,
+    timestamp: '2026-07-15T00:00:01.000Z',
+    overall_status: 'execution_completed',
+    runtime_contract: {},
+    asset_identity: { asset_id: 'kdna:test:browser', version: '0.1.0' },
+    digest_evidence: {},
+    capsule_delivery_evidence: {},
+    projection_actual: { profile: 'compact', capsule_delivery_digest: digest, profile_deviated_from_plan: false },
+    host_receipt: {},
+    execution: {
+      delivery_status: 'correlated_response',
+      semantic_consumption: { state: 'not_observed', basis: null },
+      execution_status: 'completed',
+      conformance_status: 'not_evaluated',
+      model_identity: { value: null, basis: 'not_observed' },
+    },
+    budget: {
+      limits: {},
+      actual: { tokens_used: null, usage_basis: 'not_observed' },
+      comparison: { overall: 'within_limit' },
+    },
+    result_ref: { result_digest: digest, stored: true },
+    errors: [],
+    warnings: [],
+  };
+}
+
 test('readKDNAMetadata reads public manifest fields without a server', async () => {
   const meta = await readKDNAMetadata(makeAssetFile());
   assert.equal(meta.domain, 'kdna:test:browser');
@@ -161,14 +240,13 @@ test('KDNALoadPlanManager drives plan-load and load JSON calls', async () => {
           plan: { can_load_now: false, required_action: 'enter_password', state: 'needs_password' },
         }));
       }
+      const capsule = currentRuntimeCapsule();
+      capsule.profile = body.profile;
+      capsule.trace.profile = body.profile;
       return new Response(JSON.stringify({
-        content: { highest_question: 'What should be loaded?' },
+        content: capsule.context,
         profile: body.profile,
-        capsule: {
-          type: 'kdna.context.capsule',
-          version: '1.0',
-          context: { highest_question: 'What should be loaded?' },
-        },
+        capsule,
       }));
     },
   });
@@ -178,7 +256,8 @@ test('KDNALoadPlanManager drives plan-load and load JSON calls', async () => {
   assert.equal(plan.requirements.password.required, true);
 
   const loaded = await manager.load('file-1', { profile: 'compact', password: 'pw' });
-  assert.equal(loaded.capsule.type, 'kdna.context.capsule');
+  assert.equal(loaded.capsule.type, 'kdna.runtime-capsule');
+  assert.equal(loaded.capsule.contract_version, '0.1.0');
   assert.equal(loaded.content.highest_question, 'What should be loaded?');
   assert.deepEqual(paths, ['/api/kdna/plan-load', '/api/kdna/load']);
 });
@@ -203,4 +282,55 @@ test('security docs keep raw license keys out of load guidance', () => {
     assert.doesNotMatch(text, /Passwords and license keys are arguments\\s+to `manager\\.load\\(\\)`/);
     assert.doesNotMatch(text, /must not accept, store, or transmit passwords or\\s+license keys/);
   }
+});
+
+test('JudgmentTrace parser accepts only the current contract discriminator', () => {
+  const trace = currentJudgmentTrace();
+  assert.equal(parseJudgmentTrace(JSON.stringify(trace)).contract_version, '0.1.0');
+  assert.equal(validateJudgmentTrace(trace).valid, true);
+
+  const retiredField = ['trace', 'version'].join('_');
+  const stale = { ...trace, [retiredField]: ['0', '9', '0'].join('.') };
+  assert.equal(validateJudgmentTrace(stale).valid, false);
+  assert.throws(() => parseJudgmentTrace(JSON.stringify(stale)), (error) => (
+    error instanceof KDNAFormatError && error.code === 'KDNA_JUDGMENT_TRACE_INVALID'
+  ));
+});
+
+test('judgmentTraceView keeps delivery, execution, consumption, and conformance distinct', () => {
+  const view = judgmentTraceView(currentJudgmentTrace());
+  assert.equal(view.deliveryStatus, 'correlated_response');
+  assert.equal(view.executionStatus, 'completed');
+  assert.equal(view.semanticConsumption, 'not_observed');
+  assert.equal(view.conformanceStatus, 'not_evaluated');
+  assert.equal(view.tokensUsed, null);
+  assert.equal(view.usageBasis, 'not_observed');
+});
+
+test('JudgmentTraceViewer renders through DOM APIs without HTML injection', () => {
+  const created = [];
+  const document = {
+    createElement(tagName) {
+      const node = {
+        tagName,
+        children: [],
+        textContent: '',
+        append(...children) { this.children.push(...children); },
+      };
+      created.push(node);
+      return node;
+    },
+  };
+  const container = {
+    ownerDocument: document,
+    children: [],
+    replaceChildren(...children) { this.children = children; },
+  };
+  const viewer = new JudgmentTraceViewer(container);
+  const view = viewer.render(currentJudgmentTrace());
+  assert.equal(view.semanticConsumption, 'not_observed');
+  assert.equal(container.children[0].tagName, 'section');
+  assert.ok(created.some((node) => node.textContent === 'Conformance: not_evaluated'));
+  viewer.clear();
+  assert.deepEqual(container.children, []);
 });

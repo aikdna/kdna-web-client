@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Replace the non-exported compatibility viewer with a browser-safe current
+  JudgmentTrace parser, evidence projection, and dependency-free DOM renderer.
+- Add package-root TypeScript declarations for the complete public surface.
+- Align Runtime Capsule examples and tests with the current Core contract.
+
 ## 0.2.0 (2026-07-13)
 
 - Accept only the single current KDNA media type and required container entries.

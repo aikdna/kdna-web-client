@@ -22,7 +22,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           if ! head -10 CHANGELOG.md | grep -q "$VERSION"; then
-            echo "::error::CHANGELOG.md is missing a top entry for v$VERSION."
+            echo "::error::CHANGELOG.md is missing a top entry for $VERSION."
             echo "::error::Bump package.json and add a CHANGELOG entry together."
             exit 1
           fi

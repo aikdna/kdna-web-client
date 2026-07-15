@@ -27,7 +27,7 @@ import { readKDNAMetadata } from '@aikdna/kdna-web-client'
 async function onFileSelected(file) {
   try {
     const meta = await readKDNAMetadata(file)
-    console.log(`Asset: ${meta.domain} v${meta.version}`)
+    console.log(`Asset: ${meta.domain} ${meta.version}`)
     console.log(`Encrypted: ${meta.encrypted}`)
     console.log(`Profiles: ${meta.profiles.join(', ')}`)
   } catch (err) {

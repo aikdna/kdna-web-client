@@ -176,9 +176,16 @@ Runtime Capsule; `content` is a web-UI convenience alias of `capsule.context`:
 {
   content: object
   capsule: {
-    type: "kdna.context.capsule"
-    version: "1.0"
+    type: "kdna.runtime-capsule"
+    contract_version: "0.1.0"
+    asset: object
+    digests: object
+    signature: object
+    access: "public" | "licensed" | "remote"
+    risk_level: string | null
+    profile: "index" | "compact" | "scenario" | "full"
     context: object
+    trace: object
   }
 }
 ```
@@ -220,11 +227,17 @@ within the browser's security model.
 
 ## Consumption traces
 
-The optional trace viewer is for application-level transparency: it can show a
-selected primary asset, bounded advisors, rejected candidates, budget status,
-and provenance. Browser clients should receive a projection or trace from a
-trusted application endpoint; they must not treat a sidecar as permission to
-read a protected payload.
+`parseJudgmentTrace`, `judgmentTraceView`, and the dependency-free
+`JudgmentTraceViewer` accept only `type: "kdna.judgment-trace"` with
+`contract_version: "0.1.0"`. They keep Capsule delivery, Host execution,
+semantic consumption, and conformance as separate evidence. A correlated Host
+response does not prove that a model semantically consumed the judgment or that
+the answer conforms to it.
+
+Browser clients should receive a trace from a trusted application endpoint.
+The browser check is structural; cryptographic and semantic conformance remain
+server-side KDNA Core responsibilities. A trace is never permission to read a
+protected payload.
 
 ---
 
