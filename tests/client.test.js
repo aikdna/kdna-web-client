@@ -19,7 +19,7 @@ import {
 
 const FileCtor = globalThis.File || NodeFile;
 const golden = JSON.parse(fs.readFileSync(
-  new URL('../vendor/core-ca6ede2/runtime-contract-golden.json', import.meta.url),
+  new URL('../vendor/core-1e77e3e/runtime-contract-golden.json', import.meta.url),
   'utf8',
 ));
 
@@ -283,10 +283,10 @@ test('all web trace boundaries reject hostile nested mutations', () => {
 
 test('validator authority is pinned to the audited Core schema closure', () => {
   assert.deepEqual(KDNA_SCHEMA_AUTHORITY, {
-    core_commit: 'ca6ede2b4536215b3d42fe30404afa7d66cf4ddd',
-    aggregate_sha256: '8783cb1786fbaaaa5e15641c8d2f790db143fde62bb0afdbdc2dbbce63a67876',
+    core_commit: '1e77e3e0d486c330fe9f9262b514ef24c859d469',
+    aggregate_sha256: '8c38138e18ac5b465d779aeaf9fadcdd846236b0f96e7b144a6cc5c228ad480d',
     judgment_trace_sha256: 'a260e5abbcc68bf8df11ba738b5d475901b2950668c4718e415355adc723c7b0',
-    runtime_capsule_sha256: '5ecabe3c02bc09e638c3391d8747c5d48b0f357776ca3b837bc2e03310dcc339',
+    runtime_capsule_sha256: '0219870a83fffddee4fa869cd1976c7ee55bcfa5fd4a44dc4032e126500333db',
   });
 });
 
