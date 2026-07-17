@@ -38,9 +38,9 @@ export class KDNALoadError extends Error {
 
 export declare const KDNA_SCHEMA_AUTHORITY: Readonly<{
   core_commit: '1e77e3e0d486c330fe9f9262b514ef24c859d469';
-  aggregate_sha256: '8783cb1786fbaaaa5e15641c8d2f790db143fde62bb0afdbdc2dbbce63a67876';
+  aggregate_sha256: '8c38138e18ac5b465d779aeaf9fadcdd846236b0f96e7b144a6cc5c228ad480d';
   judgment_trace_sha256: 'a260e5abbcc68bf8df11ba738b5d475901b2950668c4718e415355adc723c7b0';
-  runtime_capsule_sha256: '5ecabe3c02bc09e638c3391d8747c5d48b0f357776ca3b837bc2e03310dcc339';
+  runtime_capsule_sha256: '0219870a83fffddee4fa869cd1976c7ee55bcfa5fd4a44dc4032e126500333db';
 }>;
 
 export interface KDNAMetadata {

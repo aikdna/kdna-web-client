@@ -184,7 +184,6 @@ convenience alias of `capsule.context`:
     digests: object
     signature: object
     access: "public" | "licensed" | "remote"
-    risk_level: string | null
     profile: "index" | "compact" | "scenario" | "full"
     context: object
     trace: object
