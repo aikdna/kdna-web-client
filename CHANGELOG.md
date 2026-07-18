@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2 (2026-07-18)
+
+- Derive the browser `asset_id` grammar from the pinned KDNA Core schema
+  closure instead of maintaining a narrower hand-written expression.
+- Preserve valid multi-segment, mixed-case, dotted, and underscored asset IDs
+  in public inspect and LoadPlan projections while continuing to null invalid
+  identities.
+- Fail validator generation when Core's Runtime Capsule, Consumption Plan, and
+  JudgmentTrace schemas disagree about asset identity syntax.
+
 ## 0.2.1 (2026-07-18)
 
 - Replace the non-exported compatibility viewer with a browser-safe current

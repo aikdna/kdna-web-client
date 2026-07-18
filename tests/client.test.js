@@ -242,6 +242,44 @@ test('uploadKDNA posts multipart form data and returns fileId', async () => {
   assert.equal(calls[0].url, '/api/kdna/inspect');
 });
 
+test('HTTP projections preserve representative asset_ids accepted by the pinned Core schema', async () => {
+  const canonicalAssetId = 'KDNA:Team.Name:Asset.Part:Variant_1';
+  const upload = await uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
+    fetch: async () => new Response(JSON.stringify({
+      fileId: 'file-canonical',
+      domain: canonicalAssetId,
+      loadPlan: {
+        format_version: '0.1.0',
+        asset: { asset_id: canonicalAssetId },
+        state: 'ready',
+        required_action: 'load',
+        can_load_now: true,
+        projection_policy: 'minimal',
+        checks: { overall_valid: true },
+      },
+    })),
+  });
+  assert.equal(upload.inspect.domain, canonicalAssetId);
+  assert.equal(upload.inspect.loadPlan.asset.asset_id, canonicalAssetId);
+
+  const invalid = await uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
+    fetch: async () => new Response(JSON.stringify({
+      fileId: 'file-invalid',
+      domain: '@author/asset',
+      loadPlan: {
+        asset: { asset_id: '@author/asset' },
+        state: 'invalid',
+        required_action: 'block',
+        can_load_now: false,
+        projection_policy: 'none',
+        checks: { overall_valid: false },
+      },
+    })),
+  });
+  assert.equal(invalid.inspect.domain, null);
+  assert.equal(invalid.inspect.loadPlan.asset.asset_id, null);
+});
+
 test('uploadKDNA keeps upstream error bodies and noncanonical codes private', async () => {
   const secret = 'synthetic-private-value';
   let caught;
