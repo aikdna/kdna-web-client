@@ -1,4 +1,5 @@
 import {
+  KDNA_ASSET_ID_PATTERN,
   KDNA_SCHEMA_AUTHORITY,
   validateJudgmentTrace as validateCanonicalJudgmentTrace,
   validateRuntimeCapsule as validateCanonicalRuntimeCapsule,
@@ -61,7 +62,7 @@ const MAX_ZIP_ENTRIES = 128;
 const MAX_RESPONSE_SIZE_BYTES = 64 * 1024;
 const SAFE_ERROR_CODE = /^[A-Z][A-Z0-9_]{0,63}$/u;
 const SAFE_FILE_ID = /^[A-Za-z0-9_-]{1,128}$/u;
-const ASSET_ID = /^kdna:[a-z0-9][a-z0-9_-]*:[a-z0-9][a-z0-9_-]*$/u;
+const ASSET_ID = new RegExp(KDNA_ASSET_ID_PATTERN, 'u');
 const NATURAL_SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
 const LOAD_STATES = new Set([
   'ready', 'needs_password', 'needs_license', 'needs_account', 'needs_org_auth',

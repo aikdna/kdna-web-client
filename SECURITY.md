@@ -22,7 +22,7 @@ pre-release and the canonical KDNA protocol/runtime surfaces.
 |-----------|-------------------|
 | KDNA Core schema authority | 0.20.0 (`1e77e3e0d486c330fe9f9262b514ef24c859d469`) |
 | KDNA Web Server integration | 0.3.0 |
-| KDNA Web Client | 0.2.1 |
+| KDNA Web Client | 0.2.2 |
 
 The exact Core authority commit and schema digests are exported as
 `KDNA_SCHEMA_AUTHORITY`. Older package releases may receive critical security

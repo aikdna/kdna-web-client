@@ -49,9 +49,27 @@ function loadSchemas(authority) {
   return schemas;
 }
 
+function canonicalAssetIdPattern(schemas) {
+  const byId = new Map(schemas.map((schema) => [schema.$id, schema]));
+  const patterns = [
+    byId.get(RUNTIME_CAPSULE_ID)?.$defs?.asset?.properties?.asset_id?.pattern,
+    byId.get('https://github.com/aikdna/kdna/specs/consumption-plan.schema.json')
+      ?.$defs?.assetId?.pattern,
+    byId.get(JUDGMENT_TRACE_ID)?.$defs?.assetId?.pattern,
+  ];
+  if (patterns.some((pattern) => typeof pattern !== 'string' || pattern.length === 0)) {
+    throw new Error('Core schema closure does not expose every asset_id pattern.');
+  }
+  if (!patterns.every((pattern) => pattern === patterns[0])) {
+    throw new Error('Core schema closure has inconsistent asset_id patterns.');
+  }
+  return patterns[0];
+}
+
 async function generate() {
   const authority = loadAuthority();
   const schemas = loadSchemas(authority);
+  const assetIdPattern = canonicalAssetIdPattern(schemas);
   const ajv = new Ajv2020({
     allErrors: true,
     strict: true,
@@ -74,7 +92,7 @@ async function generate() {
     aggregate_sha256: authority.aggregate_sha256,
     judgment_trace_sha256: authority.schemas['judgment-trace.schema.json'],
     runtime_capsule_sha256: authority.schemas['runtime-capsule.schema.json'],
-  })});\n`;
+  })});\nexport const KDNA_ASSET_ID_PATTERN = ${JSON.stringify(assetIdPattern)};\n`;
   const bundled = await build({
     stdin: {
       contents: `${standalone}${authorityExport}`,

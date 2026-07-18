@@ -1,6 +1,6 @@
 {
   "name": "@aikdna/kdna-web-client",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Browser-safe KDNA utilities — file selection, metadata inspection, upload, and load-plan state management. Never performs decryption.",
   "type": "module",
   "exports": {

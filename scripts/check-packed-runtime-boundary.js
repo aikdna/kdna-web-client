@@ -137,7 +137,7 @@ try {
   assert.equal(reports.length, 1, 'npm pack must report exactly one package');
   const report = reports[0];
   assert.equal(report.name, '@aikdna/kdna-web-client');
-  assert.equal(report.version, '0.2.1');
+  assert.equal(report.version, '0.2.2');
   if (report.entryCount !== EXPECTED_FILES.length
       || !sameStringSet(report.files.map((entry) => entry.path), EXPECTED_FILES)) {
     fail('PACK_FILE_REPORT', 'npm pack file report drifted from the reviewed public package boundary');
@@ -163,7 +163,7 @@ try {
 
   const packedManifest = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
   assert.equal(packedManifest.name, '@aikdna/kdna-web-client');
-  assert.equal(packedManifest.version, '0.2.1');
+  assert.equal(packedManifest.version, '0.2.2');
   assert.deepEqual(packedManifest.exports, {
     '.': { types: './src/index.d.ts', default: './src/index.js' },
   });
