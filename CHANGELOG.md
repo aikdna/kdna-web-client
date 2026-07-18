@@ -1,15 +1,21 @@
 # Changelog
 
-## 0.2.1 (2026-07-16)
+## 0.2.1 (2026-07-18)
 
 - Replace the non-exported compatibility viewer with a browser-safe current
   JudgmentTrace parser, evidence projection, and dependency-free DOM renderer.
 - Add package-root TypeScript declarations for the complete public surface.
 - Align Runtime Capsule examples and tests with the current Core contract.
-
 - Generate browser validators from the pinned Core schema closure, validate
   Runtime Capsules at `load()`, and reject hostile nested trace mutations.
-- Bind release publication to the full CI gate and exact no-prefix SemVer tag.
+- Bound ZIP metadata and JSON response parsing, reject malformed container
+  structure, and align the default browser file limit with the Web Server.
+- Project successful HTTP responses to documented public fields and prevent
+  upstream messages, bodies, paths, and provider details from entering errors.
+- Exercise the exact Web Server 0.3.0 and Core 0.20.0 packages with the accepted
+  Laozi 0.1.1 asset across pinned Node.js releases.
+- Bind stable publication to an immutable release-only workflow, exact natural
+  SemVer coordinate, exact dependency graph, and strict CHANGELOG entry.
 
 ## 0.2.0 (2026-07-13)
 

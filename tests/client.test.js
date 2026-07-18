@@ -55,7 +55,7 @@ function makeStoredZip(entries) {
   const centralParts = [];
   let offset = 0;
 
-  for (const [name, raw] of Object.entries(entries)) {
+  for (const [name, raw] of (Array.isArray(entries) ? entries : Object.entries(entries))) {
     const nameBytes = bytes(name);
     const data = bytes(raw);
     const local = concat([
@@ -161,6 +161,62 @@ test('readKDNAMetadata enforces optional maxSizeBytes', async () => {
   );
 });
 
+test('readKDNAMetadata defaults to the server-aligned 10 MiB memory limit', async () => {
+  const oversized = new FileCtor(
+    [new Uint8Array((10 * 1024 * 1024) + 1)],
+    'oversized.kdna',
+    { type: 'application/vnd.kdna.asset' },
+  );
+  await assert.rejects(
+    readKDNAMetadata(oversized),
+    (error) => error instanceof KDNAFileSizeError
+      && error.code === 'KDNA_FILE_TOO_LARGE'
+      && error.maxSizeBytes === 10 * 1024 * 1024,
+  );
+});
+
+test('readKDNAMetadata rejects unsafe size configuration', async () => {
+  await assert.rejects(
+    readKDNAMetadata(makeAssetFile(), { maxSizeBytes: 0 }),
+    (error) => error instanceof KDNAFormatError && error.code === 'KDNA_MAX_SIZE_INVALID',
+  );
+});
+
+test('readKDNAMetadata rejects duplicate ZIP names and oversized manifests', async () => {
+  const duplicate = new FileCtor([makeStoredZip([
+    ['mimetype', 'application/vnd.kdna.asset'],
+    ['kdna.json', '{}'],
+    ['kdna.json', '{}'],
+    ['payload.kdnab', '{}'],
+  ])], 'duplicate.kdna', { type: 'application/vnd.kdna.asset' });
+  await assert.rejects(
+    readKDNAMetadata(duplicate),
+    (error) => error instanceof KDNAFormatError && error.code === 'KDNA_ZIP_ENTRY_DUPLICATE',
+  );
+
+  const largeManifest = new FileCtor([makeStoredZip({
+    mimetype: 'application/vnd.kdna.asset',
+    'kdna.json': JSON.stringify({ summary: 'x'.repeat(1024 * 1024) }),
+    'payload.kdnab': '{}',
+  })], 'large-manifest.kdna', { type: 'application/vnd.kdna.asset' });
+  await assert.rejects(
+    readKDNAMetadata(largeManifest),
+    (error) => error instanceof KDNAFormatError && error.code === 'KDNA_MANIFEST_TOO_LARGE',
+  );
+});
+
+test('readKDNAMetadata requires kdna.json to be an object', async () => {
+  const asset = new FileCtor([makeStoredZip({
+    mimetype: 'application/vnd.kdna.asset',
+    'kdna.json': '[]',
+    'payload.kdnab': '{}',
+  })], 'array-manifest.kdna', { type: 'application/vnd.kdna.asset' });
+  await assert.rejects(
+    readKDNAMetadata(asset),
+    (error) => error instanceof KDNAFormatError && error.code === 'KDNA_MANIFEST_INVALID',
+  );
+});
+
 test('uploadKDNA posts multipart form data and returns fileId', async () => {
   const calls = [];
   const result = await uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
@@ -168,25 +224,102 @@ test('uploadKDNA posts multipart form data and returns fileId', async () => {
       calls.push({ url, init });
       assert.equal(init.method, 'POST');
       assert.ok(init.body instanceof FormData);
-      return new Response(JSON.stringify({ fileId: 'file-1', domain: 'kdna:test:browser' }), {
+      return new Response(JSON.stringify({
+        fileId: 'file-1',
+        domain: 'kdna:test:browser',
+        internal_path: '/private/upload/file-1',
+        file: { originalName: 'browser.kdna' },
+      }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       });
     },
   });
   assert.equal(result.fileId, 'file-1');
+  assert.equal(result.inspect.domain, 'kdna:test:browser');
+  assert.equal(result.inspect.internal_path, undefined);
+  assert.equal(result.inspect.file, undefined);
   assert.equal(calls[0].url, '/api/kdna/inspect');
 });
 
-test('uploadKDNA surfaces structured server errors', async () => {
+test('uploadKDNA keeps upstream error bodies and noncanonical codes private', async () => {
+  const secret = 'synthetic-private-value';
+  let caught;
   await assert.rejects(
     uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
-      fetch: async () => new Response(JSON.stringify({ error: { code: 'bad', message: 'Nope' } }), {
+      fetch: async () => new Response(JSON.stringify({
+        error: { code: 'bad', message: `/private/provider/path ${secret}` },
+        provider: { detail: secret },
+      }), {
         status: 400,
         headers: { 'content-type': 'application/json' },
       }),
     }),
-    (error) => error instanceof KDNAUploadError && error.code === 'bad',
+    (error) => {
+      caught = error;
+      return error instanceof KDNAUploadError
+        && error.code === 'KDNA_UPLOAD_ERROR'
+        && error.status === 400
+        && error.response === null;
+    },
+  );
+  assert.doesNotMatch(JSON.stringify(caught), new RegExp(secret));
+  assert.doesNotMatch(caught.message, /private|provider|synthetic/u);
+});
+
+test('uploadKDNA accepts only bounded canonical public error codes', async () => {
+  await assert.rejects(
+    uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
+      fetch: async () => new Response(JSON.stringify({
+        error: { code: 'KDNA_FILE_TOO_LARGE', message: 'hidden detail' },
+      }), { status: 413 }),
+    }),
+    (error) => error instanceof KDNAUploadError
+      && error.code === 'KDNA_FILE_TOO_LARGE'
+      && error.message === 'KDNA request failed with HTTP 413.',
+  );
+});
+
+test('uploadKDNA bounds, validates, and sanitizes server responses', async () => {
+  await assert.rejects(
+    uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
+      fetch: async () => new Response(JSON.stringify({ padding: 'x'.repeat(65 * 1024) }), {
+        status: 500,
+      }),
+    }),
+    (error) => error instanceof KDNAUploadError && error.code === 'KDNA_RESPONSE_TOO_LARGE',
+  );
+
+  const secret = 'malformed-private-value';
+  await assert.rejects(
+    uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
+      fetch: async () => new Response(`not-json ${secret}`, { status: 500 }),
+    }),
+    (error) => error instanceof KDNAUploadError
+      && error.code === 'KDNA_RESPONSE_INVALID_JSON'
+      && !error.message.includes(secret)
+      && error.response === null,
+  );
+
+  await assert.rejects(
+    uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
+      fetch: async () => { throw new Error(`/private/network/${secret}`); },
+    }),
+    (error) => error instanceof KDNAUploadError
+      && error.code === 'KDNA_NETWORK_ERROR'
+      && !JSON.stringify(error).includes(secret),
+  );
+
+  await assert.rejects(
+    uploadKDNA(makeAssetFile(), '/api/kdna/inspect', {
+      fetch: async () => new Response(JSON.stringify({
+        fileId: `/private/storage/${secret}`,
+        domain: 'kdna:test:browser',
+      })),
+    }),
+    (error) => error instanceof KDNAUploadError
+      && error.code === 'KDNA_INSPECT_RESPONSE_INVALID'
+      && !JSON.stringify(error).includes(secret),
   );
 });
 
@@ -199,7 +332,14 @@ test('KDNALoadPlanManager drives plan-load and load JSON calls', async () => {
       if (url.endsWith('/plan-load')) {
         assert.equal(body.fileId, 'file-1');
         return new Response(JSON.stringify({
-          plan: { can_load_now: false, required_action: 'enter_password', state: 'needs_password' },
+          missing: ['/private/plan', 'enter_password'],
+          plan: {
+            can_load_now: false,
+            required_action: 'enter_password',
+            state: 'needs_password',
+            checks: { overall_valid: true, internal_path: true },
+          },
+          internal_path: '/private/plan',
         }));
       }
       const capsule = currentRuntimeCapsule();
@@ -208,18 +348,24 @@ test('KDNALoadPlanManager drives plan-load and load JSON calls', async () => {
         content: capsule.context,
         profile: body.profile,
         capsule,
+        internal_path: '/private/load',
       }));
     },
   });
 
   const plan = await manager.planLoad('file-1');
   assert.equal(plan.canProceed, false);
+  assert.deepEqual(plan.missing, ['enter_password']);
   assert.equal(plan.requirements.password.required, true);
+  assert.equal(plan.plan.checks.overall_valid, true);
+  assert.equal(plan.plan.checks.internal_path, undefined);
+  assert.equal(plan.response, undefined);
 
   const loaded = await manager.load('file-1', { profile: 'compact', password: 'pw' });
   assert.equal(loaded.capsule.type, 'kdna.runtime-capsule');
   assert.equal(loaded.capsule.contract_version, '0.1.0');
   assert.equal(loaded.content.highest_question, golden.request.capsule.context.highest_question);
+  assert.equal(loaded.internal_path, undefined);
   assert.deepEqual(paths, ['/api/kdna/plan-load', '/api/kdna/load']);
 });
 
@@ -235,9 +381,13 @@ test('KDNALoadPlanManager rejects forged Runtime Capsules at the load boundary',
   );
 });
 
-test('KDNALoadPlanManager throws KDNALoadError on failed load calls', async () => {
+test('KDNALoadPlanManager exposes status and canonical code without the failed body', async () => {
+  const secret = 'load-private-value';
   const manager = new KDNALoadPlanManager('/api/kdna', {
-    fetch: async () => new Response(JSON.stringify({ error: { code: 'denied', message: 'Denied' } }), {
+    fetch: async () => new Response(JSON.stringify({
+      error: { code: 'KDNA_ACCESS_DENIED', message: `/private/load ${secret}` },
+      provider: { detail: secret },
+    }), {
       status: 403,
       headers: { 'content-type': 'application/json' },
     }),
@@ -245,7 +395,12 @@ test('KDNALoadPlanManager throws KDNALoadError on failed load calls', async () =
 
   await assert.rejects(
     manager.load('file-1'),
-    (error) => error instanceof KDNALoadError && error.status === 403 && error.code === 'denied',
+    (error) => error instanceof KDNALoadError
+      && error.status === 403
+      && error.code === 'KDNA_ACCESS_DENIED'
+      && error.response === null
+      && !JSON.stringify(error).includes(secret)
+      && !error.message.includes('/private'),
   );
 });
 

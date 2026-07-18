@@ -23,16 +23,16 @@ export class KDNAFileSizeError extends Error {
 export class KDNAUploadError extends Error {
   code: string;
   status: number | null;
-  response: unknown;
-  cause?: unknown;
+  /** Always null. Server response bodies are never attached to public errors. */
+  response: null;
   constructor(message: string, options?: KDNAErrorOptions);
 }
 
 export class KDNALoadError extends Error {
   code: string;
   status: number | null;
-  response: unknown;
-  cause?: unknown;
+  /** Always null. Server response bodies are never attached to public errors. */
+  response: null;
   constructor(message: string, options?: KDNAErrorOptions);
 }
 
@@ -60,14 +60,35 @@ export function readKDNAMetadata(
   options?: { maxSizeBytes?: number },
 ): Promise<KDNAMetadata>;
 
+export interface KDNAInspectResponse {
+  fileId: string;
+  domain: string | null;
+  version: string | null;
+  title: string | null;
+  description: string | null;
+  encrypted: boolean;
+  defaultProfile: string | null;
+  profiles?: string[];
+  loadPlan: Record<string, unknown>;
+}
+
 export function uploadKDNA(
   file: File,
   endpoint: string,
-  options?: { fieldName?: string; fetch?: typeof fetch; headers?: HeadersInit },
-): Promise<{ fileId: string; inspect: Record<string, unknown> }>;
+  options?: {
+    fieldName?: string;
+    fetch?: typeof fetch;
+    headers?: HeadersInit;
+    signal?: AbortSignal;
+  },
+): Promise<{ fileId: string; inspect: KDNAInspectResponse }>;
 
 export class KDNALoadPlanManager {
-  constructor(baseUrl: string, options?: { fetch?: typeof fetch; headers?: HeadersInit });
+  constructor(baseUrl: string, options?: {
+    fetch?: typeof fetch;
+    headers?: HeadersInit;
+    signal?: AbortSignal;
+  });
   endpoint(path: string): string;
   post(path: string, body: unknown): Promise<Record<string, unknown>>;
   planLoad(fileId: string, context?: Record<string, unknown>): Promise<{
@@ -78,7 +99,6 @@ export class KDNALoadPlanManager {
       licenseKey: { required: boolean };
     };
     plan: Record<string, unknown>;
-    response: Record<string, unknown>;
   }>;
   load(fileId: string, options?: Record<string, unknown>): Promise<KDNALoadResponse>;
 }
@@ -144,8 +164,11 @@ export interface KDNARuntimeCapsule {
 
 export interface KDNALoadResponse {
   capsule: KDNARuntimeCapsule;
-  content?: KDNARuntimeCapsule['context'];
-  profile?: KDNARuntimeCapsule['profile'];
+  domain: string;
+  version: string;
+  judgmentVersion: string;
+  content: KDNARuntimeCapsule['context'];
+  profile: KDNARuntimeCapsule['profile'];
 }
 
 export interface JudgmentTraceHostCapabilities {

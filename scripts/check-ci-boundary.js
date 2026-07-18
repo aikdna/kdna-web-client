@@ -7,7 +7,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const CHECKOUT_ACTION = 'actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0';
 export const SETUP_NODE_ACTION = 'actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38';
-export const TESTED_NODE_RELEASES = Object.freeze(['20', '22', '24', '26']);
+export const TESTED_NODE_RELEASES = Object.freeze([
+  '20.20.2', '22.23.1', '24.18.0', '26.5.0',
+]);
 export const EXPECTED_PACKAGE_GATE = Object.freeze([
   'npm run ci:boundary',
   'npm run validators:check',
@@ -16,6 +18,7 @@ export const EXPECTED_PACKAGE_GATE = Object.freeze([
   'npm run lint',
   'npm run build',
   'npm run size',
+  'npm run public:check',
   'npm run naming:check',
   'npm run package:runtime-check',
   'npm pack --dry-run --json',
@@ -47,12 +50,22 @@ export const EXPECTED_CI_WORKFLOW = [
   `        node: [${TESTED_NODE_RELEASES.map((release) => `'${release}'`).join(', ')}]`,
   '    steps:',
   `      - uses: ${CHECKOUT_ACTION}`,
+  `      - uses: ${CHECKOUT_ACTION}`,
+  '        with:',
+  '          repository: aikdna/kdna-assets',
+  '          ref: 2dd1e2844fd8b8deff8ea0e2620fd946e5c9544f',
+  '          path: public-assets',
   `      - uses: ${SETUP_NODE_ACTION}`,
   '        with:',
   '          node-version: ${{ matrix.node }}',
-  '      - run: npm ci --ignore-scripts',
+  '          check-latest: false',
+  '      - run: npm ci --ignore-scripts --no-audit --no-fund',
   '      - run: node scripts/check-ci-boundary.js',
   '      - run: npm run ci',
+  '      - name: Exercise Web Server 0.3.0 and Core 0.20.0 with an accepted asset',
+  '        env:',
+  '          KDNA_WEB_CLIENT_ASSET: public-assets/references/public/laozi-wuwei/laozi-wuwei-0.1.1.kdna',
+  '        run: npm run test:web-server-integration',
   '',
 ].join('\n');
 
@@ -81,6 +94,21 @@ export function assertCiBoundary({ workflow, pkg, lock, allowlist }) {
     pkg.scripts?.['package:runtime-check'],
     'node scripts/check-packed-runtime-boundary.js',
     'packed runtime command drifted',
+  );
+  assert.equal(
+    pkg.scripts?.['test:web-server-integration'],
+    'node --test tests/web-server-integration.test.js',
+    'real Web Server integration command drifted',
+  );
+  assert.equal(
+    pkg.devDependencies?.['@aikdna/kdna-web-server'],
+    '0.3.0',
+    'Web Server integration dependency drifted',
+  );
+  assert.equal(
+    lock.packages?.['node_modules/@aikdna/kdna-web-server']?.version,
+    '0.3.0',
+    'Web Server integration lock drifted',
   );
   assert.equal(lock.version, pkg.version, 'lock root version drifted');
   assert.equal(lock.packages?.['']?.version, pkg.version, 'lock package version drifted');

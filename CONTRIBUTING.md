@@ -47,9 +47,10 @@ Contributions that violate the following will be rejected:
   `/load`.
 - This package **must not** include Node.js built-in modules (`fs`,
   `crypto`, `path`, etc.) in the browser bundle.
-- File content read by this package is limited to metadata and header
-  fields. Full payload bytes are forwarded to the server, not parsed
-  client-side.
+- The browser may buffer the bounded container to locate ZIP metadata, but it
+  decodes only `mimetype` and public `kdna.json`. Payload bytes are never
+  deserialized or interpreted client-side and are forwarded only by the
+  explicit upload call.
 
 If a proposed feature requires decryption or license verification,
 it belongs in `@aikdna/kdna-web-server`, not here.
