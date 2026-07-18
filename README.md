@@ -77,16 +77,14 @@ Reads public manifest fields from a `.kdna` `File` object without
 uploading it or performing any decryption.
 
 ```js
-const meta = await readKDNAMetadata(file, {
-  maxSizeBytes: 10 * 1024 * 1024,
-})
+const meta = await readKDNAMetadata(file)
 ```
 
 Returns:
 
 ```ts
 {
-  domain:      string         // e.g. "@author/asset-name"
+  domain:      string         // e.g. "kdna:aikdna:laozi-wuwei"
   version:     string         // e.g. "1.2.0"
   title:       string | null
   description: string | null
@@ -96,7 +94,11 @@ Returns:
 }
 ```
 
-Throws `KDNAFileSizeError` if `maxSizeBytes` is set and the file is too large.
+The default `maxSizeBytes` is 10 MiB, aligned with the official Web Server.
+Pass a smaller positive integer when your application needs a tighter memory
+budget. The public manifest is independently limited to 1 MiB.
+
+Throws `KDNAFileSizeError` if the file is too large.
 Throws `KDNAFormatError` if the file is not a valid `.kdna` container.
 
 ---
@@ -115,12 +117,19 @@ Returns:
 ```ts
 {
   fileId:   string    // opaque ID — pass to plan-load and load
-  inspect:  object    // the full /inspect response
+  inspect:  object    // bounded public inspect fields only
 }
 ```
 
-Throws `KDNAUploadError` if the request fails or the server returns
-a non-200 status.
+The client keeps only `fileId`, public asset metadata, the default profile,
+optional profiles, and the public LoadPlan. Server storage metadata, internal
+paths, and unknown fields are discarded.
+
+Throws `KDNAUploadError` if the request fails or the server returns a non-200
+status. Public errors contain a fixed local message, HTTP status, and a
+canonical KDNA error code when the server supplies one. Server error messages
+and response bodies are never attached; the compatibility `response` property
+is always `null`.
 
 ---
 
@@ -169,13 +178,18 @@ const result = await manager.load('abc123', {
 })
 ```
 
-Returns the `/load` response from the server only after `capsule` satisfies the
-complete Runtime Capsule schema closure pinned to an audited KDNA Core commit.
+Returns a public projection derived from `capsule` only after `capsule`
+satisfies the complete Runtime Capsule schema closure pinned to an audited KDNA
+Core commit. Unknown top-level server fields are discarded.
 The Agent-facing artifact is the Runtime Capsule; `content` is a web-UI
 convenience alias of `capsule.context`:
 
 ```ts
 {
+  domain: "kdna:aikdna:laozi-wuwei"
+  version: "0.1.1"
+  judgmentVersion: "0.1.0"
+  profile: "compact"
   content: object
   capsule: {
     type: "kdna.runtime-capsule"
@@ -207,6 +221,12 @@ Thrown by `readKDNAMetadata` when the file does not have a valid
 
 Thrown by `uploadKDNA` when the HTTP request fails.
 
+### `KDNALoadError`
+
+Thrown by LoadPlan and load calls when the request fails or the returned
+Runtime Capsule is invalid. As with `KDNAUploadError`, upstream response bodies
+and messages are never exposed.
+
 ---
 
 ## Security model
@@ -224,7 +244,10 @@ Short version:
   variable. Raw license keys belong on your activation endpoint, not
   `/load`.
 - This package has no Node.js built-in dependencies. It runs entirely
-within the browser's security model.
+  within the browser's security model.
+- JSON responses are read as bounded UTF-8 and must be JSON objects. Error
+  payloads are reduced to status and a canonical code; success payloads are
+  projected to the documented public surface.
 
 ## Consumption traces
 

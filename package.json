@@ -1,7 +1,7 @@
 {
   "name": "@aikdna/kdna-web-client",
   "version": "0.2.1",
-  "description": "Browser-safe KDNA utilities \u2014 file selection, metadata inspection, upload, and load-plan state management. Never performs decryption.",
+  "description": "Browser-safe KDNA utilities — file selection, metadata inspection, upload, and load-plan state management. Never performs decryption.",
   "type": "module",
   "exports": {
     ".": {
@@ -19,9 +19,10 @@
     "SECURITY.md"
   ],
   "scripts": {
-    "ci": "npm run ci:boundary && npm run validators:check && npm test && npm run typecheck && npm run lint && npm run build && npm run size && npm run naming:check && npm run package:runtime-check && npm pack --dry-run --json",
+    "ci": "npm run ci:boundary && npm run validators:check && npm test && npm run typecheck && npm run lint && npm run build && npm run size && npm run public:check && npm run naming:check && npm run package:runtime-check && npm pack --dry-run --json",
     "ci:boundary": "node scripts/check-ci-boundary.js && node scripts/test-ci-boundary-hostile.js && node scripts/test-packed-runtime-boundary-hostile.js",
-    "test": "node --test tests/client.test.js",
+    "test": "node --test tests/client.test.js tests/release-context.test.cjs",
+    "test:web-server-integration": "node --test tests/web-server-integration.test.js",
     "typecheck": "tsc --noEmit",
     "lint": "node scripts/lint.js",
     "build": "node scripts/build.js",
@@ -29,8 +30,9 @@
     "validators:generate": "node scripts/generate-runtime-validators.js --write",
     "validators:check": "node scripts/generate-runtime-validators.js --check",
     "naming:check": "node scripts/check-naming-integrity.js",
+    "public:check": "node scripts/check-public-surface.js",
     "package:runtime-check": "node scripts/check-packed-runtime-boundary.js",
-    "release:binding": "node scripts/check-release-binding.js",
+    "release:context": "node scripts/verify-release-context.cjs",
     "prepublishOnly": "npm run ci"
   },
   "engines": {
@@ -39,6 +41,7 @@
   "peerDependencies": {},
   "dependencies": {},
   "devDependencies": {
+    "@aikdna/kdna-web-server": "0.3.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "esbuild": "^0.25.6",

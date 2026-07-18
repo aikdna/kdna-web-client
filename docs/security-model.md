@@ -13,6 +13,7 @@ and transmits, and what it explicitly does not do.
 | Upload a file to the server | `fetch` POST with `multipart/form-data` |
 | Drive the load-plan flow | `fetch` POST to `/plan-load` and `/load` |
 | Forward credentials to `/load` | Single `fetch` POST — credentials not stored |
+| Read server responses | Bounded UTF-8 JSON with explicit public projections |
 
 ---
 
@@ -31,6 +32,8 @@ and transmits, and what it explicitly does not do.
 - **No local payload parsing.** The package may see ZIP entry names while
   locating `kdna.json`, but it does not attempt to decode, deserialize,
   or display payload content.
+- **No upstream error-body exposure.** Server messages, response payloads,
+  provider details, and paths are not copied onto public client errors.
 
 ---
 
@@ -60,12 +63,28 @@ The password never touches `localStorage`, `sessionStorage`,
 `readKDNAMetadata(file)` reads the local file into memory so it can locate
 the ZIP central directory, verify the KDNA mimetype entry, and extract
 public manifest fields from `kdna.json`. It does not parse or decrypt
-payload entries. Use the `maxSizeBytes` option when you need a browser-side
-memory guard before metadata inspection.
+payload entries. A 10 MiB file limit is enforced by default, matching the
+official Web Server, and `kdna.json` has an independent 1 MiB decompression
+limit. ZIP entry counts, central-directory bounds, duplicate names, local
+headers, UTF-8 names, and declared sizes are validated before metadata is
+returned. Use `maxSizeBytes` to choose a smaller positive limit.
 
 `uploadKDNA(file, endpoint)` sends the full file bytes to the server
 endpoint using the `fetch` API. The bytes are not retained after the
 upload completes.
+
+## Response and error boundary
+
+Server response bodies are limited to 64 KiB, decoded as strict UTF-8, and
+required to contain a JSON object. Upload and LoadPlan success responses are
+projected to documented public fields. Load success is reconstructed from a
+Runtime Capsule only after the exact pinned Core schema closure accepts it.
+
+For failed requests, the client ignores the upstream message and body. It
+exposes only a fixed local message, HTTP status, and an uppercase bounded KDNA
+error code when present. `KDNAUploadError.response` and
+`KDNALoadError.response` remain `null` for compatibility; they never contain a
+`Response` object or parsed server payload.
 
 ---
 

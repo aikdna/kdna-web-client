@@ -6,7 +6,7 @@
 
 - A browser environment or a bundler that targets the browser
   (Vite, webpack, Parcel, etc.)
-- A server running `@aikdna/kdna-web-server` (or equivalent KDNA
+- A server running `@aikdna/kdna-web-server@0.3.0` (or equivalent KDNA
   API endpoints)
 
 ---
@@ -48,8 +48,12 @@ import { uploadKDNA } from '@aikdna/kdna-web-client'
 
 const { fileId, inspect } = await uploadKDNA(file, '/api/kdna/inspect')
 console.log('File ID:', fileId)
-console.log('Load-plan mode:', inspect.loadPlan.mode)
+console.log('LoadPlan state:', inspect.loadPlan.state)
+console.log('Required action:', inspect.loadPlan.required_action)
 ```
+
+`inspect` contains only documented public asset and LoadPlan fields. Storage
+paths and unknown server fields are discarded.
 
 ---
 
@@ -86,6 +90,11 @@ console.log(result.content)
 
 The password is sent directly to the server in a single POST request
 and is not stored anywhere in the browser.
+
+Load results are accepted only when the Runtime Capsule satisfies the exact
+Core 0.20 schema closure. The returned `content` is an object equal to
+`capsule.context`; use `JSON.stringify(result.content, null, 2)` when rendering
+it into text UI.
 
 ---
 

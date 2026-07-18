@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {
   CHECKOUT_ACTION,
+  SETUP_NODE_ACTION,
   EXPECTED_CI_WORKFLOW,
   assertCiBoundary,
   loadCandidate,
@@ -47,20 +48,20 @@ const workflowMutations = new Map([
   )],
   ['matrix exclusion', replaceOnce(
     EXPECTED_CI_WORKFLOW,
-    "        node: ['20', '22', '24', '26']\n",
-    "        node: ['20', '22', '24', '26']\n        exclude:\n          - node: '20'\n",
+    "        node: ['20.20.2', '22.23.1', '24.18.0', '26.5.0']\n",
+    "        node: ['20.20.2', '22.23.1', '24.18.0', '26.5.0']\n        exclude:\n          - node: '20.20.2'\n",
   )],
   ['matrix inclusion', replaceOnce(
     EXPECTED_CI_WORKFLOW,
-    "        node: ['20', '22', '24', '26']\n",
-    "        node: ['20', '22', '24', '26']\n        include:\n          - node: '28'\n",
+    "        node: ['20.20.2', '22.23.1', '24.18.0', '26.5.0']\n",
+    "        node: ['20.20.2', '22.23.1', '24.18.0', '26.5.0']\n        include:\n          - node: '28.0.0'\n",
   )],
   ['extra action', replaceOnce(
     EXPECTED_CI_WORKFLOW,
-    `      - uses: ${CHECKOUT_ACTION}\n`,
-    `      - uses: ${CHECKOUT_ACTION}\n      - uses: ${CHECKOUT_ACTION}\n`,
+    `      - uses: ${SETUP_NODE_ACTION}\n`,
+    `      - uses: ${SETUP_NODE_ACTION}\n      - uses: ${SETUP_NODE_ACTION}\n`,
   )],
-  ['mutable action', replaceOnce(EXPECTED_CI_WORKFLOW, CHECKOUT_ACTION, mutableCheckout)],
+  ['mutable action', replaceOnce(EXPECTED_CI_WORKFLOW, SETUP_NODE_ACTION, mutableCheckout)],
   ['continue on error', replaceOnce(
     EXPECTED_CI_WORKFLOW,
     '      - run: npm run ci\n',
@@ -83,7 +84,7 @@ const workflowMutations = new Map([
   )],
   ['dependency lifecycle enabled', replaceOnce(
     EXPECTED_CI_WORKFLOW,
-    '      - run: npm ci --ignore-scripts\n',
+    '      - run: npm ci --ignore-scripts --no-audit --no-fund\n',
     '      - run: npm ci\n',
   )],
 ]);
@@ -104,6 +105,12 @@ packageMutations.set('hostile gates omitted', noHostile);
 const runtimeNoOp = structuredClone(valid.pkg);
 runtimeNoOp.scripts['package:runtime-check'] = 'node -e "process.exit(0)"';
 packageMutations.set('packed runtime no-op', runtimeNoOp);
+const noIntegration = structuredClone(valid.pkg);
+delete noIntegration.scripts['test:web-server-integration'];
+packageMutations.set('real integration omitted', noIntegration);
+const rangedServer = structuredClone(valid.pkg);
+rangedServer.devDependencies['@aikdna/kdna-web-server'] = '^0.3.0';
+packageMutations.set('Web Server range dependency', rangedServer);
 const olderEngine = structuredClone(valid.pkg);
 olderEngine.engines.node = '>=18';
 packageMutations.set('engine floor weakened', olderEngine);
