@@ -14,7 +14,7 @@ const {
 const ROOT = path.resolve(__dirname, '..');
 const PACKAGE_JSON = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const PACKAGE_LOCK = JSON.parse(fs.readFileSync(path.join(ROOT, 'package-lock.json'), 'utf8'));
-const WORKFLOW = fs.readFileSync(path.join(ROOT, '.github/workflows/publish.yml'), 'utf8');
+const PUBLISH_WORKFLOW = path.join(ROOT, '.github/workflows/publish.yml');
 const SCRIPT = path.join(ROOT, 'scripts/verify-release-context.cjs');
 
 function changelogFor(heading, extra = '') {
@@ -102,13 +102,6 @@ test('a Git-legal command-shaped tag remains data and fails before publication',
   assert.doesNotMatch(`${result.stdout}${result.stderr}`, /TAG_INTERPOLATION_EXECUTED/u);
 });
 
-test('publish workflow is release-only, immutable, and checks out the exact tag', () => {
-  assert.match(WORKFLOW, /release:\s*\n\s+types: \[published\]/u);
-  assert.doesNotMatch(WORKFLOW, /workflow_dispatch/u);
-  assert.match(WORKFLOW, /actions\/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0/u);
-  assert.match(WORKFLOW, /actions\/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38/u);
-  assert.doesNotMatch(WORKFLOW, /actions\/(?:checkout|setup-node)@v\d+/u);
-  assert.match(WORKFLOW, /ref: \$\{\{ github\.event\.release\.tag_name \}\}/u);
-  assert.match(WORKFLOW, /run: node scripts\/verify-release-context\.cjs/u);
-  assert.match(WORKFLOW, /github\.event\.release\.prerelease == false/u);
+test('frozen repository has no automated publish workflow', () => {
+  assert.equal(fs.existsSync(PUBLISH_WORKFLOW), false);
 });
