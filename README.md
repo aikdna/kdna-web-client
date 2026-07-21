@@ -2,6 +2,9 @@
 
 **Browser-safe KDNA utilities.**
 
+> **Status:** Experimental published browser integration at its exact package
+> coordinate. It is not a stable browser Runtime or a complete Host policy.
+
 File selection, metadata inspection, upload to your server, and
 load-plan state management — without ever performing decryption in
 the browser.
@@ -66,6 +69,11 @@ input.onchange = async () => {
 }
 input.click()
 ```
+
+The file picker establishes an explicit user selection for this operation. If
+an application remembers the file as an attachment, it must keep exact
+identity, digest, scope, and reason visible and provide disable/switch/rollback
+controls. Upload storage alone does not authorize future tasks.
 
 ---
 
