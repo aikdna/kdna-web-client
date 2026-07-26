@@ -573,7 +573,10 @@ export async function uploadKDNA(file, endpoint, options = {}) {
 }
 
 function trimSlash(value) {
-  return String(value || '').replace(/\/+$/, '');
+  const s = String(value || '');
+  let end = s.length;
+  while (end > 0 && s[end - 1] === '/') end--;
+  return s.slice(0, end);
 }
 
 export class KDNALoadPlanManager {

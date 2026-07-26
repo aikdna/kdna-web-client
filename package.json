@@ -21,7 +21,7 @@
   "scripts": {
     "ci": "npm run ci:boundary && npm run validators:check && npm test && npm run typecheck && npm run lint && npm run build && npm run size && npm run public:check && npm run naming:check && npm run package:runtime-check && npm pack --dry-run --json",
     "ci:boundary": "node scripts/check-ci-boundary.js && node scripts/test-ci-boundary-hostile.js && node scripts/test-packed-runtime-boundary-hostile.js",
-    "test": "node --test tests/client.test.js tests/release-context.test.cjs",
+    "test": "node --test tests/client.test.js tests/regexp-safety.test.js tests/release-context.test.cjs",
     "test:web-server-integration": "node --test tests/web-server-integration.test.js",
     "typecheck": "tsc --noEmit",
     "lint": "node scripts/lint.js",
