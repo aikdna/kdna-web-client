@@ -183,7 +183,7 @@ try {
     const bytes = fs.readFileSync(path.join(packageRoot, relative));
     if (bytes.includes(0)) continue;
     const text = bytes.toString('utf8');
-    for (const forbidden of ['/Users/', '/private/', 'private/x-plan', 'WORKLOG.md', 'AGENTS.md']) {
+    for (const forbidden of ['/Users/', '/private/', 'private/', 'WORKLOG.md', 'AGENTS.md']) {
       if (text.includes(forbidden)) {
         fail('PACK_PRIVATE', `private token shipped in ${relative}: ${forbidden}`);
       }

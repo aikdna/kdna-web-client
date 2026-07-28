@@ -125,7 +125,7 @@ for (const record of records) {
     if (text.includes(token)) findings.push(`${record.surface}:${record.path}: retired runtime surface`);
   }
   if (record.surface === 'package') {
-    for (const privateToken of ['/Users/', '/private/', 'private/x-plan', 'WORKLOG.md', 'AGENTS.md']) {
+    for (const privateToken of ['/Users/', '/private/', 'private/', 'WORKLOG.md', 'AGENTS.md']) {
       if (text.includes(privateToken)) findings.push(`${record.surface}:${record.path}: private surface`);
     }
   }

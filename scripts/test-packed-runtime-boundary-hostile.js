@@ -90,6 +90,13 @@ try {
         fs.appendFileSync(path.join(directory, 'README.md'), `\nInternal source: ${privatePath}\n`);
       },
     }],
+    ['relative private workspace leak', {
+      code: '[PACK_PRIVATE]',
+      mutate(directory) {
+        const privatePath = ['private', 'workspace', 'project-note'].join('/');
+        fs.appendFileSync(path.join(directory, 'README.md'), `\nInternal source: ${privatePath}\n`);
+      },
+    }],
     ['install lifecycle', {
       code: '[PACK_LIFECYCLE]',
       mutate(directory) {
