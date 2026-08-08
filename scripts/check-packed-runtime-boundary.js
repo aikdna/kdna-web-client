@@ -38,10 +38,10 @@ const EXPECTED_RUNTIME_EXPORTS = Object.freeze([
   'validateJudgmentTrace',
 ]);
 const EXPECTED_AUTHORITY = Object.freeze({
-  core_commit: '1e77e3e0d486c330fe9f9262b514ef24c859d469',
-  aggregate_sha256: '8c38138e18ac5b465d779aeaf9fadcdd846236b0f96e7b144a6cc5c228ad480d',
+  core_commit: '32aa3ff8e633291d4bb9e01de5a70181c8415d93',
+  aggregate_sha256: 'd568dd7a588a6e76bfc240950e16418216430626353734f5c1bde691fdd0b0fe',
   judgment_trace_sha256: 'a260e5abbcc68bf8df11ba738b5d475901b2950668c4718e415355adc723c7b0',
-  runtime_capsule_sha256: '0219870a83fffddee4fa869cd1976c7ee55bcfa5fd4a44dc4032e126500333db',
+  runtime_capsule_sha256: '344e584a8b264ce381c2b754e69d46664d6dba049e6a2ffae8731df9ec05e6f6',
 });
 
 function fail(code, message) {
@@ -137,7 +137,7 @@ try {
   assert.equal(reports.length, 1, 'npm pack must report exactly one package');
   const report = reports[0];
   assert.equal(report.name, '@aikdna/kdna-web-client');
-  assert.equal(report.version, '0.2.2');
+  assert.equal(report.version, '0.3.0');
   if (report.entryCount !== EXPECTED_FILES.length
       || !sameStringSet(report.files.map((entry) => entry.path), EXPECTED_FILES)) {
     fail('PACK_FILE_REPORT', 'npm pack file report drifted from the reviewed public package boundary');
@@ -163,7 +163,7 @@ try {
 
   const packedManifest = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
   assert.equal(packedManifest.name, '@aikdna/kdna-web-client');
-  assert.equal(packedManifest.version, '0.2.2');
+  assert.equal(packedManifest.version, '0.3.0');
   assert.deepEqual(packedManifest.exports, {
     '.': { types: './src/index.d.ts', default: './src/index.js' },
   });
@@ -202,7 +202,7 @@ try {
   assert.match(declarations, /export declare const KDNA_SCHEMA_AUTHORITY\b/u);
 
   const golden = JSON.parse(fs.readFileSync(
-    path.join(root, 'vendor/core-1e77e3e/runtime-contract-golden.json'),
+    path.join(root, 'vendor/core-32aa3ff/runtime-contract-golden.json'),
     'utf8',
   ));
   assert.equal(runtime.validateJudgmentTrace(golden.trace).valid, true);

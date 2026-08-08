@@ -8,13 +8,13 @@ import addFormats from 'ajv-formats';
 import standaloneCode from 'ajv/dist/standalone/index.js';
 import { build } from 'esbuild';
 
-const EXPECTED_CORE_COMMIT = '1e77e3e0d486c330fe9f9262b514ef24c859d469';
-const EXPECTED_AGGREGATE = '8c38138e18ac5b465d779aeaf9fadcdd846236b0f96e7b144a6cc5c228ad480d';
-const EXPECTED_GOLDEN = '92b9dc94128bf00a0f92d346030cb8a78256e20ed6ad7231117f2ee4c5d2740f';
+const EXPECTED_CORE_COMMIT = '32aa3ff8e633291d4bb9e01de5a70181c8415d93';
+const EXPECTED_AGGREGATE = 'd568dd7a588a6e76bfc240950e16418216430626353734f5c1bde691fdd0b0fe';
+const EXPECTED_GOLDEN = 'f88a92d0641f55d1ff1bf0b51fee2a7f4932b727fd312c07c4f7b5d0d2db5884';
 const JUDGMENT_TRACE_ID = 'https://github.com/aikdna/kdna/specs/judgment-trace.schema.json';
 const RUNTIME_CAPSULE_ID = 'https://github.com/aikdna/kdna/specs/runtime-capsule.schema.json';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const vendor = path.join(root, 'vendor/core-1e77e3e');
+const vendor = path.join(root, 'vendor/core-32aa3ff');
 const outputPath = path.join(root, 'src/generated/runtime-validators.js');
 
 function sha256(bytes) {
