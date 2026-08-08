@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 (2026-08-08)
+
+- Re-vendor the KDNA Core schema closure to the published 0.21.0 authority
+  (`32aa3ff`): Runtime Capsule gains `projection_report` (omitted counts /
+  partial status) and signature-state tightening; all six schemas and the
+  runtime-contract golden are re-pinned byte-for-byte.
+- Regenerate browser validators from the 0.21.0 closure and require them at
+  `load()`: Capsules produced by `@aikdna/kdna-web-server@0.3.1` (Core 0.21.0)
+  now validate instead of failing with KDNA_RUNTIME_CAPSULE_INVALID.
+- Raise the committed browser-runtime size ceiling (270,000 → 276,000 bytes)
+  to absorb the larger 0.21.0 capsule validator; gzip ceiling unchanged.
+
 ## 0.2.2 (2026-07-18)
 
 - Derive the browser `asset_id` grammar from the pinned KDNA Core schema
