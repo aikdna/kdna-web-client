@@ -6,7 +6,7 @@
 
 - A browser environment or a bundler that targets the browser
   (Vite, webpack, Parcel, etc.)
-- A server running `@aikdna/kdna-web-server@0.3.0` (or equivalent KDNA
+- A server running `@aikdna/kdna-web-server@0.3.1` (or equivalent KDNA
   API endpoints)
 
 ---

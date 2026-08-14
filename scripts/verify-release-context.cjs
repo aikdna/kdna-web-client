@@ -74,14 +74,14 @@ function verifyReleaseEvent({ action, isDraft, isPrerelease }) {
 
 function verifyDependencies(packageJson, packageLock) {
   assert(
-    packageJson?.devDependencies?.['@aikdna/kdna-web-server'] === '0.3.0'
-      && packageLock?.packages?.['']?.devDependencies?.['@aikdna/kdna-web-server'] === '0.3.0'
-      && packageLock?.packages?.['node_modules/@aikdna/kdna-web-server']?.version === '0.3.0',
-    'integration tests must bind exact @aikdna/kdna-web-server@0.3.0',
+    packageJson?.devDependencies?.['@aikdna/kdna-web-server'] === '0.3.1'
+      && packageLock?.packages?.['']?.devDependencies?.['@aikdna/kdna-web-server'] === '0.3.1'
+      && packageLock?.packages?.['node_modules/@aikdna/kdna-web-server']?.version === '0.3.1',
+    'integration tests must bind exact @aikdna/kdna-web-server@0.3.1',
   );
   assert(
-    packageLock?.packages?.['node_modules/@aikdna/kdna-core']?.version === '0.20.0',
-    'integration tests must resolve exact @aikdna/kdna-core@0.20.0',
+    packageLock?.packages?.['node_modules/@aikdna/kdna-core']?.version === '0.21.0',
+    'integration tests must resolve exact @aikdna/kdna-core@0.21.0',
   );
 }
 
