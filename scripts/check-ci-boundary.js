@@ -62,7 +62,7 @@ export const EXPECTED_CI_WORKFLOW = [
   '      - run: npm ci --ignore-scripts --no-audit --no-fund',
   '      - run: node scripts/check-ci-boundary.js',
   '      - run: npm run ci',
-  '      - name: Exercise Web Server 0.3.0 and Core 0.20.0 with an accepted asset',
+  '      - name: Exercise Web Server 0.3.1 and Core 0.21.0 with an accepted asset',
   '        env:',
   '          KDNA_WEB_CLIENT_ASSET: public-assets/references/public/laozi-wuwei/laozi-wuwei-0.1.1.kdna',
   '        run: npm run test:web-server-integration',
@@ -102,12 +102,12 @@ export function assertCiBoundary({ workflow, pkg, lock, allowlist }) {
   );
   assert.equal(
     pkg.devDependencies?.['@aikdna/kdna-web-server'],
-    '0.3.0',
+    '0.3.1',
     'Web Server integration dependency drifted',
   );
   assert.equal(
     lock.packages?.['node_modules/@aikdna/kdna-web-server']?.version,
-    '0.3.0',
+    '0.3.1',
     'Web Server integration lock drifted',
   );
   assert.equal(lock.version, pkg.version, 'lock root version drifted');

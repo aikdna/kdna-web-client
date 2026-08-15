@@ -41,7 +41,7 @@
   "peerDependencies": {},
   "dependencies": {},
   "devDependencies": {
-    "@aikdna/kdna-web-server": "0.3.0",
+    "@aikdna/kdna-web-server": "0.3.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "esbuild": "^0.25.6",
