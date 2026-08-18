@@ -36,7 +36,7 @@
     "prepublishOnly": "npm run ci"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "peerDependencies": {},
   "dependencies": {},
