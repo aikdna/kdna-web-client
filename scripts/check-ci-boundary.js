@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 export const CHECKOUT_ACTION = 'actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0';
 export const SETUP_NODE_ACTION = 'actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38';
 export const TESTED_NODE_RELEASES = Object.freeze([
-  '20.20.2', '22.23.1', '24.18.0', '26.5.0',
+  '22.23.1', '24.18.0',
 ]);
 export const EXPECTED_PACKAGE_GATE = Object.freeze([
   'npm run ci:boundary',
@@ -83,7 +83,7 @@ export function loadCandidate(root) {
 
 export function assertCiBoundary({ workflow, pkg, lock, allowlist }) {
   assert.equal(workflow, EXPECTED_CI_WORKFLOW, 'CI workflow is not the exact reviewed contract');
-  assert.equal(pkg.engines?.node, '>=20', 'Node engine floor drifted');
+  assert.equal(pkg.engines?.node, '>=22', 'Node engine floor drifted');
   assert.deepEqual(
     pkg.scripts?.ci?.split(/\s*&&\s*/u),
     EXPECTED_PACKAGE_GATE,
