@@ -41,16 +41,18 @@ Contributions that violate the following will be rejected:
 - This package **must not** store passwords, raw license keys, or signed
   entitlement records in object properties, module-level variables,
   browser storage, or caches.
-- This package may POST passwords and signed entitlement records directly
-  to compatible server endpoints for a single in-flight load request.
-  Raw license keys must travel only to an activation endpoint, never to
-  `/load`.
+- The current API accepts no credentials or activation input. Explicit Read
+  sends only the selected asset bytes and the caller's bounded public request;
+  ambient Fetch credentials, redirects and retries remain disabled.
 - This package **must not** include Node.js built-in modules (`fs`,
   `crypto`, `path`, etc.) in the browser bundle.
-- The browser may buffer the bounded container to locate ZIP metadata, but it
-  decodes only `mimetype` and public `kdna.json`. Payload bytes are never
-  deserialized or interpreted client-side and are forwarded only by the
-  explicit upload call.
+- This adapter delegates selected-byte admission to public Core/browser and
+  response admission to public Read/transport. Do not add another ZIP, payload,
+  schema or protocol parser. Core-owned interpretation stays in the bound
+  public dependency; the client returns only its documented selection and view.
+- Preserve bounded safe-text presentation and the official remote proof limits.
+  Selection, a successful response and delivery metadata grant no action authority.
 
-If a proposed feature requires decryption or license verification,
-it belongs in `@aikdna/kdna-web-server`, not here.
+A proposal involving decryption, credentials or licensing requires a separate
+versioned upstream contract decision. The current Web Server also does not
+provide those unavailable capabilities.
