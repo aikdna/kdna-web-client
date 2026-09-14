@@ -1,298 +1,85 @@
 # @aikdna/kdna-web-client
 
-**Browser-safe KDNA utilities.**
+Explicit browser file selection and a remote Read consumer. The public Core admits selected container bytes. The public `@aikdna/kdna-read/transport` receiver admits the actual Fetch `Response`; this package projects that result without a second parser, Validator, schema, JCS implementation, closure resolver, or Host fallback.
 
-> **Status:** Experimental published browser integration at its exact package
-> coordinate. It is not a stable browser Runtime or a complete Host policy.
+Version `0.5.0-rc.component-semantics.1` binds Core
+`0.24.0-rc.component-semantics.2` and Read `0.3.0-rc.component-semantics.2`.
+The component definition is
+`sha256:3087cd19542e72322aec19b3015c916d2cfb074fa42e3fd76b3756bb4f097de3`.
+Exact archive identities are listed in `docs/current-core-read-binding.json`;
+matching version labels alone do not identify the tested graph.
+For source setup and installation from local archives, see
+[Getting started](https://github.com/aikdna/kdna-web-client/blob/main/docs/getting-started.md).
+The candidate peer versions are not yet available from the npm registry.
 
-File selection, metadata inspection, upload to your server, and
-load-plan state management — without ever performing decryption in
-the browser.
+## Public API
 
-> **Design constraint:** this package never decrypts anything. It reads
-> public metadata from a `.kdna` file and delegates all sensitive
-> operations to a server running
-> [@aikdna/kdna-web-server](https://github.com/aikdna/kdna-web-server).
-
-> New to KDNA? → [KDNA Core](https://github.com/aikdna/kdna)
->
-> Need a server-side adapter? →
-> [@aikdna/kdna-web-server](https://github.com/aikdna/kdna-web-server)
->
-> Need React components? →
-> [@aikdna/kdna-react](https://github.com/aikdna/kdna-react)
-
-[![npm](https://img.shields.io/npm/v/@aikdna/kdna-web-client)](https://www.npmjs.com/package/@aikdna/kdna-web-client)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
-
----
-
-## Install
-
-```bash
-npm install @aikdna/kdna-web-client
-```
-
-No peer dependencies. No Node.js built-ins in the browser bundle.
-
----
-
-## Quick start
+- `selectKDNA(fileOrBytes, { maxFileBytes? })` accepts File, Blob, ArrayBuffer or Uint8Array and returns a Core-admitted selection or a bounded rejection. It copies bytes and exposes only Core identity, version tuple and digest evidence. The default and maximum file limit is 10 MiB. Raw payload and manifests are not returned. A public Core rejection also exposes its unchanged `states`, `diagnostics` and `component_failure`; technically valid content with blocked component interpretation remains rejected with no selection. Local file-input errors keep their bounded error shape without invented Core states.
+- `createKDNAWebClient({ endpointUrl, endpointId, sessionId, timeoutMs?, maxConcurrentRequests?, fetch? })` creates an explicit remote session. The URL must be canonical HTTP(S), without credentials or a fragment. There is no implicit server.
+- `client.read(selection, context, { signal? })` uploads the private selected bytes and the exact `context.outbound_request_json` as multipart fields `file` and `request`. `context` is the public ReadTransportContext, including its request, correlation, lifetime, response limits and expected Core identity. The application supplies this explicit contract; the client does not invent selection semantics or authority. The client checks the chosen file against its identity binding, and the public receiver validates the full response contract.
+- `client.dispose()` cancels active work and prevents further reads. `releaseKDNASelection(selection)` drops retained file bytes and cancels reads of that selection. Both are idempotent.
 
 ```js
-import { readKDNAMetadata, uploadKDNA, KDNALoadPlanManager } from '@aikdna/kdna-web-client'
-
-// 1. Let the user pick a file
-const input = document.createElement('input')
-input.type = 'file'
-input.accept = '.kdna'
-input.onchange = async () => {
-  const file = input.files[0]
-
-  // 2. Read public metadata (no server round-trip, no decryption)
-  const meta = await readKDNAMetadata(file)
-  console.log(meta.domain, meta.version, meta.encrypted)
-
-  // 3. Upload to your server and get a fileId
-  const { fileId } = await uploadKDNA(file, '/api/kdna/inspect')
-
-  // 4. Manage the load-plan flow
-  const manager = new KDNALoadPlanManager('/api/kdna')
-  const plan = await manager.planLoad(fileId)
-
-  if (plan.canProceed) {
-    const result = await manager.load(fileId, { profile: 'compact' })
-    console.log(result.capsule.context)
-  } else {
-    console.log('Missing:', plan.missing)  // e.g. ['enter_password']
-  }
-}
-input.click()
-```
-
-The file picker establishes an explicit user selection for this operation. If
-an application remembers the file as an attachment, it must keep exact
-identity, digest, scope, and reason visible and provide disable/switch/rollback
-controls. Upload storage alone does not authorize future tasks.
-
----
-
-## API reference
-
-### `readKDNAMetadata(file)`
-
-Reads public manifest fields from a `.kdna` `File` object without
-uploading it or performing any decryption.
-
-```js
-const meta = await readKDNAMetadata(file)
-```
-
-Returns:
-
-```ts
-{
-  domain:      string         // e.g. "kdna:aikdna:laozi-wuwei"
-  version:     string         // e.g. "1.2.0"
-  title:       string | null
-  description: string | null
-  encrypted:   boolean
-  profiles:    string[]       // available load profiles
-  fileSize:    number         // bytes
-}
-```
-
-The default `maxSizeBytes` is 10 MiB, aligned with the official Web Server.
-Pass a smaller positive integer when your application needs a tighter memory
-budget. The public manifest is independently limited to 1 MiB.
-
-Throws `KDNAFileSizeError` if the file is too large.
-Throws `KDNAFormatError` if the file is not a valid `.kdna` container.
-
----
-
-### `uploadKDNA(file, endpoint)`
-
-Upload a `.kdna` `File` to an endpoint (typically
-`/api/kdna/inspect`) and return the `fileId` assigned by the server.
-
-```js
-const { fileId, inspect } = await uploadKDNA(file, '/api/kdna/inspect')
-```
-
-Returns:
-
-```ts
-{
-  fileId:   string    // opaque ID — pass to plan-load and load
-  inspect:  object    // bounded public inspect fields only
-}
-```
-
-The client keeps only `fileId`, public asset metadata, the default profile,
-optional profiles, and the public LoadPlan. Server storage metadata, internal
-paths, and unknown fields are discarded.
-
-Throws `KDNAUploadError` if the request fails or the server returns a non-200
-status. Public errors contain a fixed local message, HTTP status, and a
-canonical KDNA error code when the server supplies one. Server error messages
-and response bodies are never attached; the compatibility `response` property
-is always `null`.
-
----
-
-### `KDNALoadPlanManager`
-
-Stateful class that drives the load-plan flow for a single file.
-
-```js
-const manager = new KDNALoadPlanManager(baseUrl)
-```
-
-| Method | Description |
-|--------|-------------|
-| `planLoad(fileId, context?)` | Evaluate the LoadPlan. Returns requirements. |
-| `load(fileId, options)` | Load the asset. Credentials are passed directly. |
-
-#### `planLoad(fileId, context?)`
-
-```js
-const plan = await manager.planLoad('abc123', {
-  hasPassword: false,
-  entitlementToken: null,
-})
-```
-
-Returns:
-
-```ts
-{
-  canProceed:   boolean
-  missing:      string[]    // e.g. ['enter_password']
-  requirements: {
-    password:   { required: boolean, hint: string | null }
-    licenseKey: { required: boolean }
+import { selectKDNA, createKDNAWebClient, releaseKDNASelection } from '@aikdna/kdna-web-client';
+const chosen = await selectKDNA(file);
+if (chosen.status === 'selected') {
+  const client = createKDNAWebClient({ endpointUrl, endpointId, sessionId });
+  try {
+    const result = await client.read(chosen.selection, readTransportContext, { signal });
+    if (result.status === 'received') consumeRemoteView(result.view);
+  } finally {
+    client.dispose();
+    releaseKDNASelection(chosen.selection);
   }
 }
 ```
 
-#### `load(fileId, options)`
+`received` means the official receiver admitted the remote response. Inspect `view.response.channel` and its public body: a denied envelope, admission rejection, no-body control, and transport failure remain those outcomes. `received` alone does not mean the requested content was disclosed. The view preserves the receiver's proof scope, proof limits and false local capabilities. No remote identity, authorization, current revocation, network replay prevention, receipt delivery or raw HTTP framing proof is added. Remote content remains untrusted display data; consumers must use safe text rendering.
 
-```js
-const result = await manager.load('abc123', {
-  profile:          'compact',
-  password:         '...',   // only if required
-  entitlementToken: { status: 'active' }, // signed entitlement from /activate, only if required
-})
-```
+Failures carry bounded codes and null views. The client does not expose network exception messages or rejected bodies. Request JSON is limited to 64 KiB. Overall timeout defaults to 5 seconds and is capped at 30 seconds. Concurrent requests default to 4 and are capped at 32. The public context supplies bounded response bytes and read duration. Redirects, ambient credentials, caching and retries are disabled. Aborted, released, disposed or timed-out operations cannot publish a late view. An injected Fetch implementation is application-owned: if it ignores abort, its slot stays occupied until it settles; physical cancellation of such custom code cannot be guaranteed.
 
-Returns a public projection derived from `capsule` only after `capsule`
-satisfies the complete Runtime Capsule schema closure pinned to an audited KDNA
-Core commit. Unknown top-level server fields are discarded.
-The Agent-facing artifact is the Runtime Capsule; `content` is a web-UI
-convenience alias of `capsule.context`:
+## Packaging and verification
 
-```ts
-{
-  domain: "kdna:aikdna:laozi-wuwei"
-  version: "0.1.1"
-  judgmentVersion: "0.1.0"
-  profile: "compact"
-  content: object
-  capsule: {
-    type: "kdna.runtime-capsule"
-    contract_version: "0.1.0"
-    asset: object
-    digests: object
-    signature: object
-    access: "public" | "licensed" | "remote"
-    profile: "index" | "compact" | "scenario" | "full"
-    context: object
-    trace: object
-  }
-}
-```
+CJS and ESM expose the same three functions, with TypeScript declarations. Only public Core browser/components/package metadata and Read transport/package metadata enter the browser bundle. No Node/server/development or private entrypoints are imported. Official generated validators remain owned and shipped by their public dependency, not duplicated here.
 
----
+The current source lock resolves the KDNA/Read archives in `vendor/` and the
+declared build tools from the official registry, so `npm ci --ignore-scripts
+--no-audit --no-fund` needs registry access or a prepared npm cache; an offline
+install is not a requirement of this repository. Then run `npm test`,
+`npm run lint`, `npm run check:current-graph`, `npm run build` and
+`npm run typecheck`. `npm run pack:check` verifies the actual archive and its reported
+file surface; `npm pack --ignore-scripts --json` alone only creates the package
+and prints its report. The source tests also use an explicitly
+pinned reference Host as a development fixture, not a client runtime dependency.
+`npm run check:current-graph` verifies source vendor bytes, lock bindings and the
+runtime descriptor.
 
-### `KDNAFileSizeError`
+`esbuild` and `typescript` are declared `devDependencies`: `npm run build` and
+`npm run typecheck` use those declared tools by default and still accept an
+explicit path (`npm run build -- /path/to/esbuild/module`,
+`npm run typecheck -- /path/to/typescript/lib/tsc.js`). An explicit `tsc.js`
+path must be a compatible version (TypeScript 7 or newer): the declared
+typecheck passes `--ignoreConfig`, which the 5.x line rejects with `TS5023`.
+No esbuild or TypeScript
+executable is vendored here or shipped in the tarball — the platform binaries
+are architecture-specific optional dependencies installed from the registry —
+so a build or typecheck needs the registry or a prepared cache, and an install
+that does not omit optional dependencies.
 
-Thrown by `readKDNAMetadata` when the file exceeds the configured
-maximum size.
+The Node transport suite uses selected component bytes, a reference Host on an
+explicit `127.0.0.1` ephemeral port and native Fetch through the public receiver.
+Run it explicitly with `npm run test:http` in an environment that permits a
+loopback listener. Restricted environments can instead pass an already listening
+IPv4 FD through `KDNA_WEB_CLIENT_BOUND_FD`, with the JSON address pair in
+`KDNA_WEB_CLIENT_BOUND_ADDRESS`, to a direct Node invocation of the test file.
+Process launchers must explicitly preserve that FD; npm and worker-based test
+runners must not be assumed to do so. The default `npm test` runs current
+selection and injected pending-Fetch lifecycle checks without opening sockets. Neither suite establishes a real browser
+application, authenticated remote identity or remote application acknowledgement.
+Historical browser matrices remain under their original exact graphs and are
+not re-labelled as current verification. CJS/ESM runtime and type consumers are
+distinct from a browser bundle or browser application acceptance.
 
-### `KDNAFormatError`
-
-Thrown by `readKDNAMetadata` when the file does not have a valid
-`.kdna` header.
-
-### `KDNAUploadError`
-
-Thrown by `uploadKDNA` when the HTTP request fails.
-
-### `KDNALoadError`
-
-Thrown by LoadPlan and load calls when the request fails or the returned
-Runtime Capsule is invalid. As with `KDNAUploadError`, upstream response bodies
-and messages are never exposed.
-
----
-
-## Security model
-
-See [docs/security-model.md](./docs/security-model.md).
-
-Short version:
-
-- This package reads only the container header and public `kdna.json` manifest
-  in memory. It never parses, decrypts, or exposes `payload.kdnab`; loading is
-  delegated to the official server-side toolchain.
-- Passwords and signed entitlement records or tokens are passed as
-  arguments to `manager.load()` and are POSTed directly to the server
-  endpoint. They are not stored in any object property or module-level
-  variable. Raw license keys belong on your activation endpoint, not
-  `/load`.
-- This package has no Node.js built-in dependencies. It runs entirely
-  within the browser's security model.
-- JSON responses are read as bounded UTF-8 and must be JSON objects. Error
-  payloads are reduced to status and a canonical code; success payloads are
-  projected to the documented public surface.
-
-## Consumption traces
-
-`parseJudgmentTrace`, `judgmentTraceView`, and the dependency-free
-`JudgmentTraceViewer` validate the complete JudgmentTrace schema closure pinned
-to the same audited KDNA Core commit and fail closed on unknown or inconsistent
-nested evidence. They keep Capsule delivery, Host execution,
-semantic consumption, and conformance as separate evidence. A correlated Host
-response does not prove that a model semantically consumed the judgment or that
-the answer conforms to it.
-
-Browser clients should receive a trace from a trusted application endpoint.
-The browser check proves schema conformance only; cryptographic and semantic
-conformance remain server-side KDNA Core responsibilities. A trace is never
-permission to read a protected payload.
-
----
-
-## Related packages
-
-| Package | Role |
-|---------|------|
-| [`@aikdna/kdna-core`](https://github.com/aikdna/kdna) | KDNA format and runtime (Node.js) |
-| [`@aikdna/kdna-web-server`](https://github.com/aikdna/kdna-web-server) | Server-side adapter |
-| [`@aikdna/kdna-react`](https://github.com/aikdna/kdna-react) | React components and hooks |
-| [`create-kdna-web-app`](https://github.com/aikdna/create-kdna-web-app) | Project scaffolding CLI |
-
----
-
-
-## Official packages
-
-Official KDNA packages are published under the `@aikdna` npm scope and the
-`aikdna` name on PyPI. The unscoped npm package `kdna` is not affiliated with
-the KDNA project. Install only from the official coordinates shown in this
-README.
-
-## License
-
-Apache 2.0 — see [LICENSE](./LICENSE).
+The previous manifest/ZIP parser, upload-fileId, LoadPlan manager, Runtime Capsule, JudgmentTrace and Viewer API are retired from this candidate's exports and tarball. The retained isolated historical files are not runtime fallbacks. This is a bounded consumption-contract migration, not compatibility for the retired API, a Reader product design, or a React/application rollout. Historical modules and the explicitly named `test:legacy-graph`,
+`build:legacy-graph` and `typecheck:legacy-graph` scripts remain separate from
+current package verification.

@@ -1,0 +1,17 @@
+{
+  "format": "kdna.web-client-reference-assets/1",
+  "purpose": "Coordinates of the published public reference assets that the CI reference-asset leg may treat as ground truth. The leg may emit a not_run receipt only when the observed path, sha256, byte length and installed public Core version all match one entry here; any other observation is a hard failure with no receipt at all. Adding or republishing a reference asset is a change to this file and to nothing else on the leg.",
+  "registry_scope": "Public reference assets of the declared public dependency graph only. No private material, no local machine paths, no work-item identifiers, no build output.",
+  "assets": [
+    {
+      "id": "laozi-wuwei-0.1.1",
+      "repository": "aikdna/kdna-assets",
+      "ref": "2dd1e2844fd8b8deff8ea0e2620fd946e5c9544f",
+      "path": "public-assets/references/public/laozi-wuwei/laozi-wuwei-0.1.1.kdna",
+      "sha256": "4a90b91fe955ec3a563a7c2b598568f0eedbd04d3393211692490dfde2e09ffc",
+      "bytes": 14700,
+      "core_version": "0.24.0-rc.component-semantics.2",
+      "integration_script": "test:web-server-integration"
+    }
+  ]
+}

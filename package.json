@@ -1,51 +1,69 @@
 {
   "name": "@aikdna/kdna-web-client",
-  "version": "0.3.0",
-  "description": "Browser-safe KDNA utilities — file selection, metadata inspection, upload, and load-plan state management. Never performs decryption.",
+  "version": "0.5.0-rc.component-semantics.1",
+  "description": "Explicit file selection and public Read transport consumer with remote proof limits.",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "default": "./src/index.js"
+      "types": "./src/client.d.ts",
+      "import": "./src/client.mjs",
+      "require": "./src/client.cjs"
     }
   },
-  "types": "./src/index.d.ts",
+  "types": "./src/client.d.ts",
   "files": [
-    "src/",
-    "docs/",
+    "src/client.cjs",
+    "src/client.mjs",
+    "src/client.d.ts",
+    "README.md",
     "LICENSE",
     "NOTICE",
-    "README.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "docs/current-core-read-binding.json"
   ],
   "scripts": {
-    "ci": "npm run ci:boundary && npm run validators:check && npm test && npm run typecheck && npm run lint && npm run build && npm run size && npm run public:check && npm run naming:check && npm run package:runtime-check && npm pack --dry-run --json",
-    "ci:boundary": "node scripts/check-ci-boundary.js && node scripts/test-ci-boundary-hostile.js && node scripts/test-packed-runtime-boundary-hostile.js",
-    "test": "node --test tests/client.test.js tests/regexp-safety.test.js tests/release-context.test.cjs",
-    "test:web-server-integration": "node --test tests/web-server-integration.test.js",
-    "typecheck": "tsc --noEmit",
-    "lint": "node scripts/lint.js",
-    "build": "node scripts/build.js",
+    "ci": "npm run ci:boundary && npm test && npm run typecheck && npm run lint && npm run build && npm run size && npm run check:current-graph && npm run public:check && npm run naming:check && npm run test:http && npm run pack:check && npm run test:reference-asset-gate",
+    "ci:boundary": "node scripts/check-ci-boundary.js && node scripts/test-ci-boundary-hostile.js && node scripts/test-packed-surface-hostile.js",
+    "test": "npm run check:current-graph && node --unhandled-rejections=strict --test tests/components/selection.test.mjs tests/components/lifecycle-strict.test.mjs",
+    "lint": "node --check src/client.cjs && node --check src/client.mjs",
+    "build": "node scripts/build-current.cjs",
+    "typecheck": "node scripts/typecheck-current.cjs",
     "size": "node scripts/size.js",
-    "validators:generate": "node scripts/generate-runtime-validators.js --write",
-    "validators:check": "node scripts/generate-runtime-validators.js --check",
-    "naming:check": "node scripts/check-naming-integrity.js",
+    "prepublishOnly": "node -e \"throw Error('PUBLICATION_NOT_AUTHORIZED')\"",
+    "check:current-graph": "node scripts/check-current-graph.mjs",
+    "pack:check": "node scripts/check-packed-surface.js",
+    "test:reference-asset-gate": "node scripts/test-reference-asset-gate.mjs",
     "public:check": "node scripts/check-public-surface.js",
-    "package:runtime-check": "node scripts/check-packed-runtime-boundary.js",
-    "release:context": "node scripts/verify-release-context.cjs",
-    "prepublishOnly": "npm run ci"
+    "naming:check": "node scripts/check-naming-integrity.js",
+    "test:legacy-graph": "node --test tests/client.test.cjs",
+    "build:legacy-graph": "node scripts/build-legacy-graph.cjs",
+    "typecheck:legacy-graph": "node scripts/typecheck-legacy-graph.cjs",
+    "test:http": "node --unhandled-rejections=strict tests/components/current-client.test.mjs",
+    "test:web-server-integration": "node --test tests/web-server-integration.test.js"
   },
   "engines": {
     "node": ">=22"
   },
-  "peerDependencies": {},
+  "peerDependencies": {
+    "@aikdna/kdna-core": "0.24.0-rc.component-semantics.2",
+    "@aikdna/kdna-read": "0.3.0-rc.component-semantics.2"
+  },
   "dependencies": {},
   "devDependencies": {
-    "@aikdna/kdna-web-server": "0.3.1",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "esbuild": "^0.25.6",
-    "typescript": "^5.9.3"
+    "@aikdna/kdna-core": "file:vendor/aikdna-kdna-core-0.24.0-rc.component-semantics.2.tgz",
+    "@aikdna/kdna-read": "file:vendor/aikdna-kdna-read-0.3.0-rc.component-semantics.2.tgz",
+    "ajv": "file:vendor/ajv-8.20.0.tgz",
+    "ajv-formats": "file:vendor/ajv-formats-3.0.1.tgz",
+    "cbor-x": "file:vendor/cbor-x-1.6.5.tgz",
+    "esbuild": "^0.28.2",
+    "fast-deep-equal": "file:vendor/fast-deep-equal-3.1.3.tgz",
+    "fast-uri": "file:vendor/fast-uri-3.1.7.tgz",
+    "json-schema-traverse": "file:vendor/json-schema-traverse-1.0.0.tgz",
+    "@noble/hashes": "file:vendor/noble-hashes-1.8.0.tgz",
+    "pako": "2.1.0",
+    "require-from-string": "file:vendor/require-from-string-2.0.2.tgz",
+    "typescript": "^7.0.2",
+    "@aikdna/kdna-web-server": "file:vendor/aikdna-kdna-web-server-0.5.0-rc.component-semantics.1.tgz"
   },
   "license": "Apache-2.0",
   "repository": {
@@ -58,10 +76,8 @@
   "homepage": "https://github.com/aikdna/kdna-web-client",
   "keywords": [
     "kdna",
-    "kdna-web-client",
     "browser",
-    "file-api",
-    "load-plan",
-    "judgment-asset"
+    "read-transport",
+    "file-api"
   ]
 }
