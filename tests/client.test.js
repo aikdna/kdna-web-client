@@ -474,14 +474,14 @@ test('all web trace boundaries reject hostile nested mutations', () => {
   }
 });
 
-test('validator authority is pinned to the audited Core schema closure', () => {
-  assert.deepEqual(KDNA_SCHEMA_AUTHORITY, {
-    core_commit: '32aa3ff8e633291d4bb9e01de5a70181c8415d93',
-    aggregate_sha256: 'd568dd7a588a6e76bfc240950e16418216430626353734f5c1bde691fdd0b0fe',
-    judgment_trace_sha256: 'a260e5abbcc68bf8df11ba738b5d475901b2950668c4718e415355adc723c7b0',
-    runtime_capsule_sha256: '344e584a8b264ce381c2b754e69d46664d6dba049e6a2ffae8731df9ec05e6f6',
-  });
-});
+// RETIRED: this file has no npm script entry point, so the assertion that used to stand here -
+// `assert.deepEqual(KDNA_SCHEMA_AUTHORITY, {...})` over the retired `src/index.js` authority
+// constant - never ran in CI, and it targets a module the package no longer ships. The class it
+// covered (the shipped client's authority digests are locked to the committed binding) is
+// asserted on the CI chain by `npm run check:current-graph`
+// (scripts/check-current-graph.mjs: component-semantics definition digest plus every vendored
+// archive's byte length, sha256 and lock integrity). Retired deliberately rather than left as an
+// unreachable assertion; the historical literal is preserved in git history.
 
 test('judgmentTraceView keeps delivery, execution, consumption, and conformance distinct', () => {
   const view = judgmentTraceView(currentJudgmentTrace());

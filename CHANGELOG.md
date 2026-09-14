@@ -1,3 +1,7 @@
+# 0.5.0-rc.component-semantics.1
+
+Rebind the public browser Core and Read transport to the current component graph. Preserve public Core rejection states during file selection; retain cancellation, remote proof limits and three public functions.
+
 # Changelog
 
 ## 0.3.0 (2026-08-08)

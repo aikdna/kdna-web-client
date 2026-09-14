@@ -1,14 +1,10 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
-
 permissions:
   contents: read
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -31,7 +27,15 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node scripts/check-ci-boundary.js
       - run: npm run ci
-      - name: Exercise Web Server 0.3.1 and Core 0.21.0 with an accepted asset
+      - name: Exercise the pinned Web Server with the published reference asset
         env:
           KDNA_WEB_CLIENT_ASSET: public-assets/references/public/laozi-wuwei/laozi-wuwei-0.1.1.kdna
-        run: npm run test:web-server-integration
+        run: node scripts/run-web-server-integration-gate.mjs
+      # The receipt generator is never trusted about its own verdict: this step re-derives
+      # the leg's unavailability codes from the committed bytes, requires the receipt, the
+      # registration and the recomputation to agree in both directions, and proves the
+      # not_run disappears once its registered codes are gone.
+      - name: Verify the CI leg receipt against the committed bytes
+        env:
+          KDNA_WEB_CLIENT_ASSET: public-assets/references/public/laozi-wuwei/laozi-wuwei-0.1.1.kdna
+        run: node scripts/verify-ci-leg-receipts.mjs

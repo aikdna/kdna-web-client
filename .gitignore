@@ -1,3 +1,17 @@
 node_modules/
 *.tgz
+# The vendored archive set belongs to the repository: a clean clone installs
+# these exact pinned KDNA/Read/tool bytes. Every other *.tgz stays ignored.
+!vendor/*.tgz
 public-assets/
+
+# Regenerable build output is not a repository surface.
+dist/
+
+# Audit and delivery working notes: kept in the working tree,
+# never part of the public repository surface.
+docs/audits/
+
+# Retired-suite candidate records and run evidence: the bytes
+# live outside the repository and must not re-enter the public surface.
+docs/*legacy-disposition*.md

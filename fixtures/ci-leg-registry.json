@@ -1,0 +1,21 @@
+{
+  "format": "kdna.ci-leg-registry/1",
+  "purpose": "The only authority that may hold the web-server-integration CI leg at not_run. The gate recomputes, from the committed bytes, the unavailability codes this leg can be held at, and may print a not_run receipt only when that recomputed set is exactly the set registered here - compared in both directions. A code the gate computes but this file does not name, or a code named here that is no longer true, makes the leg run instead.",
+  "review_policy": "review_by is an expiry: scripts/verify-ci-leg-receipts.mjs fails the leg once the date has passed, so a registration cannot outlive its review. Every entry must carry a reason, the recomputed codes it names, a trigger that names what would remove it, an owner and a review_by date.",
+  "entries": [
+    {
+      "leg": "web-server-integration",
+      "class": "not_run",
+      "reason": "registered_asset_rejected_and_leg_drives_non_public_entry",
+      "object": "the pinned Web Server exercised with the published public reference asset through the package's own published client entry",
+      "condition": "recomputed_unavailability_codes == unavailable_codes",
+      "unavailable_codes": [
+        "public_core_rejects_registered_reference_asset",
+        "integration_leg_uses_non_public_client_entry"
+      ],
+      "trigger": "a published reference asset whose exact bytes the committed public Core admits is supplied through KDNA_WEB_CLIENT_ASSET AND tests/web-server-integration.test.js drives the package's published client entry (then the leg runs `npm run test:web-server-integration` for real and its exit status becomes the leg's)",
+      "owner": "aikdna/kdna-web-client maintainers",
+      "review_by": "2027-03-31"
+    }
+  ]
+}

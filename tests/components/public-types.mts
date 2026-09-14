@@ -1,0 +1,5 @@
+import {selectKDNA,createKDNAWebClient,releaseKDNASelection,type SelectionResult,type ClientResult} from '@aikdna/kdna-web-client';
+import type {CoreStaticStates,CoreComponentFailure,ReadDiagnostic} from '@aikdna/kdna-core';
+import type {ReadTransportContext} from '@aikdna/kdna-read/transport';
+async function consume(bytes:Uint8Array,context:ReadTransportContext){const result:SelectionResult=await selectKDNA(bytes);if(result.status==='rejected'){if(result.states){const states:CoreStaticStates=result.states;const diagnostics:readonly ReadDiagnostic[]=result.diagnostics;const failure:CoreComponentFailure|null=result.component_failure;void [states,diagnostics,failure];}return;}const c=createKDNAWebClient({endpointUrl:context.endpoint_url,endpointId:context.endpoint_id,sessionId:context.session_id});const r:ClientResult=await c.read(result.selection,context);if(r.status==='received'){const remote:'remote'=r.view.origin;const noAction:false=r.view.capabilities.action;const identity:'NOT_PROVEN'=r.view.proof_limits.remote_identity;void [remote,noAction,identity];}c.dispose();releaseKDNASelection(result.selection);}
+void consume;
