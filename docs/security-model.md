@@ -42,7 +42,7 @@ cryptographic policy or LoadPlan states. Those contracts come from
   (`redirect: 'error'`), caching is disabled (`cache: 'no-store'`), the
   referrer is omitted (`referrerPolicy: 'no-referrer'`), and there is no
   retry, implicit server or provider fallback.
-- **No Node.js built-ins.** The published browser entry points use standard
+- **No Node.js built-ins.** The public browser entry points use standard
   browser APIs plus the bound public Core/Read surfaces; no `fs`, `crypto`,
   `path`, `Buffer` or `process` import reaches the client runtime.
 - **No upstream error-body exposure.** A failed local read, a Core rejection, a
